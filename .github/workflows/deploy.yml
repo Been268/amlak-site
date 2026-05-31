@@ -13,5 +13,4 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
       - name: Deploy to Firebase
-        run: firebase hosting:channel:deploy live --token "${{ secrets.FIREBASE_TOKEN }}" --project syatem-amlak --site syatem-amlak
-      
+        run: firebase deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}" --project syatem-amlak --non-interactive
