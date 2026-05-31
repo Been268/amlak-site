@@ -2326,7 +2326,7 @@ function renderProperties(){
   </tbody></table>`;
 }
 
-function deleteProp(id){
+async function deleteProp(id){
   try {
     const prop = state.properties.find(p=>p.id===id);
     // حذف تصاویر از Storage
@@ -2575,7 +2575,7 @@ function renderClients(){
   </tbody></table>`;
 }
 
-function deleteClient(id){
+async function deleteClient(id){
   try {
     await _deleteDoc('clients', id);
     state.clients = state.clients.filter(c=>c.id!==id);
@@ -2622,7 +2622,7 @@ function renderAdvisors(){
   `).join('');
 }
 
-function deleteAdvisor(id){
+async function deleteAdvisor(id){
   try {
     await _deleteDoc('advisors', id);
     state.advisors = state.advisors.filter(a=>a.id!==id);
