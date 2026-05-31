@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "syatem-amlak",
     "public": ".",
     "ignore": [
       "firebase.json",
