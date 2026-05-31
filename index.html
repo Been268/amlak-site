@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -21,7 +22,7 @@
            orderBy, serverTimestamp }               from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getStorage, ref, uploadBytes,
            getDownloadURL, deleteObject }           from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
+ 
   const firebaseConfig = {
     apiKey:            "AIzaSyAJuVcqtxsMD_NizSRCBLIXC6ffZR_SniI",
     authDomain:        "syatem-amlak.firebaseapp.com",
@@ -31,12 +32,12 @@
     appId:             "1:188773423996:web:c4f61dabd222cca5bf62f9",
     measurementId:     "G-0KV5NWDRC3"
   };
-
+ 
   const app       = initializeApp(firebaseConfig);
   const auth      = getAuth(app);
   const db        = getFirestore(app);
   const storage   = getStorage(app);
-
+ 
   // expose to global scope so non-module scripts can use them
   window._fb = { auth, db, storage,
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
@@ -47,7 +48,7 @@
     orderBy, serverTimestamp, ref, uploadBytes,
     getDownloadURL, deleteObject
   };
-
+ 
   // Firebase Auth state listener — replaces authInit()
   onAuthStateChanged(auth, async (fbUser) => {
     if (fbUser) {
@@ -108,7 +109,7 @@
     min-height: 100vh;
     display: flex;
   }
-
+ 
   /* Sidebar */
   .sidebar {
     width: 240px;
@@ -139,7 +140,7 @@
   }
   .logo-text { font-size: 15px; font-weight: 700; color: var(--text); }
   .logo-sub { font-size: 11px; color: var(--text2); }
-
+ 
   nav { padding: 12px 10px; flex: 1; overflow-y: auto; }
   .nav-section { margin-bottom: 20px; }
   .nav-label { font-size: 10px; color: var(--text3); padding: 4px 8px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
@@ -154,13 +155,13 @@
   .nav-item.active { background: rgba(232,168,56,0.15); color: var(--accent); }
   .nav-item .icon { font-size: 16px; min-width: 20px; text-align: center; }
   .nav-badge { margin-right: auto; background: var(--accent); color: #000; font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 700; }
-
+ 
   .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
   .user-card { display: flex; align-items: center; gap: 10px; }
   .user-avatar { width: 32px; height: 32px; background: linear-gradient(135deg,#e8a838,#d4922a); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #000; }
   .user-name { font-size: 13px; font-weight: 600; }
   .user-role { font-size: 11px; color: var(--text2); }
-
+ 
   /* Main */
   .main {
     margin-right: 240px;
@@ -169,7 +170,7 @@
     flex-direction: column;
     min-height: 100vh;
   }
-
+ 
   .topbar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -193,13 +194,13 @@
   .btn-ghost:hover { background: var(--surface2); }
   .btn-danger { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
   .btn-sm { padding: 5px 12px; font-size: 12px; }
-
+ 
   .content { padding: 24px; flex: 1; }
-
+ 
   /* Pages */
   .page { display: none; }
   .page.active { display: block; }
-
+ 
   /* Stats */
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
   .stat-card {
@@ -222,7 +223,7 @@
   .stat-card.blue .stat-value { color: var(--blue); }
   .stat-card.purple .stat-value { color: var(--purple); }
   .stat-change { font-size: 11px; color: var(--text3); }
-
+ 
   /* Tables */
   .card {
     background: var(--surface); border: 1px solid var(--border);
@@ -234,13 +235,13 @@
   }
   .card-title { font-size: 15px; font-weight: 700; flex: 1; }
   .card-body { padding: 0; }
-
+ 
   table { width: 100%; border-collapse: collapse; }
   th { padding: 11px 16px; text-align: right; font-size: 12px; color: var(--text2); font-weight: 600; background: var(--surface2); border-bottom: 1px solid var(--border); }
   td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(48,54,61,0.5); vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
-
+ 
   .badge {
     display: inline-flex; align-items: center;
     padding: 3px 10px; border-radius: 20px;
@@ -251,7 +252,7 @@
   .badge-blue { background: rgba(88,166,255,0.15); color: var(--blue); }
   .badge-gold { background: rgba(232,168,56,0.15); color: var(--accent); }
   .badge-gray { background: var(--surface3); color: var(--text2); }
-
+ 
   /* Forms */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -282,7 +283,7 @@
   input:focus, select:focus, textarea:focus { border-color: var(--accent); }
   textarea { resize: vertical; min-height: 80px; }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-
+ 
   /* Search */
   .search-bar {
     display: flex; align-items: center; gap: 12px;
@@ -292,7 +293,7 @@
   }
   .search-bar input { background: none; border: none; flex: 1; color: var(--text); font-size: 13px; }
   .search-bar input::placeholder { color: var(--text3); }
-
+ 
   /* Telegram Section */
   .tg-card {
     background: var(--surface2); border: 1px solid var(--border);
@@ -320,7 +321,7 @@
   .tg-post .post-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
   .tg-post .post-meta { font-size: 12px; color: var(--text2); }
   .tg-post .post-actions { display: flex; gap: 8px; align-items: center; }
-
+ 
   /* Chart */
   .chart-bar-container { padding: 16px 20px; }
   .chart-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
@@ -328,7 +329,7 @@
   .chart-track { flex: 1; height: 8px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
   .chart-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
   .chart-val { font-size: 12px; color: var(--text2); min-width: 40px; }
-
+ 
   /* Advisor Cards */
   .advisor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .advisor-card {
@@ -341,7 +342,7 @@
   .advisor-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
   .advisor-deals { font-size: 24px; font-weight: 800; color: var(--accent); margin: 8px 0; }
   .advisor-commission { font-size: 12px; color: var(--text2); }
-
+ 
   /* Calendar */
   .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; padding: 16px; }
   .cal-day-header { font-size: 11px; color: var(--text2); text-align: center; padding: 6px; font-weight: 600; }
@@ -355,7 +356,7 @@
   .cal-day.today { background: rgba(232,168,56,0.2); color: var(--accent); font-weight: 700; }
   .cal-day.has-event::after { content: ''; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; position: absolute; bottom: 3px; }
   .cal-day.empty { cursor: default; }
-
+ 
   /* Reminders */
   .reminder-item {
     display: flex; align-items: center; gap: 14px;
@@ -367,7 +368,7 @@
   .reminder-title { font-size: 13px; font-weight: 600; }
   .reminder-time { font-size: 11px; color: var(--text2); }
   .reminder-tag { font-size: 11px; }
-
+ 
   /* Commission Calculator */
   .calc-section { max-width: 600px; }
   .calc-result {
@@ -381,12 +382,12 @@
   .calc-item { background: var(--surface2); border-radius: 8px; padding: 12px; }
   .calc-item-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
   .calc-item-value { font-size: 16px; font-weight: 700; }
-
+ 
   /* Empty state */
   .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
   .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
   .empty-state p { font-size: 14px; }
-
+ 
   /* Notification */
   .notification {
     position: fixed; top: 20px; left: 20px;
@@ -397,13 +398,13 @@
     display: flex; align-items: center; gap: 8px;
   }
   .notification.show { transform: translateX(0); }
-
+ 
   /* Tags input */
   .tags-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .tag { background: rgba(232,168,56,0.15); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 11px; display: flex; align-items: center; gap: 4px; }
   .tag button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; line-height: 1; }
-
-
+ 
+ 
   /* Type selector buttons */
   .type-btn {
     background: var(--surface2); border: 2px solid var(--border);
@@ -413,7 +414,7 @@
   }
   .type-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(232,168,56,0.08); transform: translateY(-2px); }
   .type-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(232,168,56,0.15); }
-
+ 
   /* ===== AUTH SCREENS ===== */
   #auth-screen {
     position:fixed;inset:0;background:var(--bg);
@@ -463,7 +464,7 @@
   .auth-pending .icon { font-size:52px;margin-bottom:12px; }
   .auth-pending h3 { font-size:16px;font-weight:700;margin-bottom:8px; }
   .auth-pending p { font-size:13px;color:var(--text2);line-height:1.7; }
-
+ 
   /* Admin panel special styles */
   .admin-user-card {
     background:var(--surface2);border:1px solid var(--border);
@@ -484,7 +485,7 @@
   }
   .admin-stat-val { font-size:26px;font-weight:800; }
   .admin-stat-lbl { font-size:11px;color:var(--text2);margin-top:4px; }
-
+ 
   /* Gallery */
   .gallery-thumb {
     aspect-ratio:1; border-radius:8px; object-fit:cover; cursor:pointer;
@@ -509,7 +510,7 @@
     border:1px solid var(--border); border-radius:8px; padding:8px 12px;
   }
   .video-link-item a { color:var(--blue); font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
+ 
   @media(max-width:900px){
     .sidebar { width: 200px; }
     .main { margin-right: 200px; }
@@ -519,7 +520,7 @@
 </style>
 </head>
 <body>
-
+ 
 <!-- ===== AUTH SCREEN ===== -->
 <div id="auth-screen">
   <div class="auth-box">
@@ -528,13 +529,13 @@
       <h1>مدیریت املاک</h1>
       <p>سیستم جامع مدیریت</p>
     </div>
-
+ 
     <!-- tabs -->
     <div class="auth-tabs" id="auth-tabs">
       <button class="auth-tab active" onclick="switchAuthTab('login')">ورود</button>
       <button class="auth-tab" onclick="switchAuthTab('register')">ثبت‌نام</button>
     </div>
-
+ 
     <!-- login form -->
     <div id="auth-login-form" class="auth-form">
       <input type="text" id="login-username" placeholder="ایمیل" type="email">
@@ -542,7 +543,7 @@
       <div id="login-error" style="color:var(--red);font-size:12px;text-align:center;display:none;"></div>
       <button class="auth-btn" onclick="doLogin()">ورود به سیستم</button>
     </div>
-
+ 
     <!-- register form -->
     <div id="auth-register-form" class="auth-form" style="display:none;">
       <input type="text" id="reg-fullname" placeholder="نام و نام خانوادگی">
@@ -553,7 +554,7 @@
       <div id="reg-error" style="color:var(--red);font-size:12px;text-align:center;display:none;"></div>
       <button class="auth-btn" onclick="doRegister()">ارسال درخواست ثبت‌نام</button>
     </div>
-
+ 
     <!-- pending state -->
     <div id="auth-pending-box" class="auth-pending" style="display:none;">
       <div class="icon">⏳</div>
@@ -563,7 +564,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Sidebar -->
 <aside class="sidebar">
   <div class="logo">
@@ -632,7 +633,7 @@
     </div>
   </div>
 </aside>
-
+ 
 <!-- Main -->
 <main class="main">
   <div class="topbar">
@@ -640,9 +641,9 @@
       <div class="topbar-title" id="page-title">داشبورد اصلی</div>
     </div>
   </div>
-
+ 
   <div class="content">
-
+ 
     <!-- Dashboard -->
     <div class="page active" id="page-dashboard">
       <div class="stats-grid">
@@ -667,7 +668,7 @@
           <div class="stat-change">تومان</div>
         </div>
       </div>
-
+ 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
         <div class="card">
           <div class="card-header">
@@ -688,7 +689,7 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Properties -->
     <div class="page" id="page-properties">
       <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;">
@@ -704,7 +705,7 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Clients -->
     <div class="page" id="page-clients">
       <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;">
@@ -720,7 +721,7 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Advisors -->
     <div class="page" id="page-advisors">
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
@@ -730,7 +731,7 @@
         <div class="empty-state" style="grid-column:1/-1;"><div class="icon">🤝</div><p>هنوز مشاوری ثبت نشده</p></div>
       </div>
     </div>
-
+ 
     <!-- Deals -->
     <div class="page" id="page-deals">
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
@@ -742,7 +743,7 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Telegram -->
     <div class="page" id="page-telegram">
       <div class="tg-card">
@@ -761,7 +762,7 @@
           ⚠️ برای دسترسی واقعی به تلگرام، باید از Telegram Bot API یا ابزار دیگری استفاده کنید. اینجا می‌توانید لینک‌ها را ذخیره کنید.
         </div>
       </div>
-
+ 
       <div class="card">
         <div class="card-header">
           <div class="card-title">📋 فایل‌های ذخیره شده از تلگرام</div>
@@ -772,7 +773,7 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Commission Calculator -->
     <div class="page" id="page-commission">
       <div class="calc-section">
@@ -835,7 +836,7 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Calendar -->
     <div class="page" id="page-calendar">
       <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;">
@@ -858,11 +859,11 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Admin Panel -->
     <div class="page" id="page-admin">
       <div class="admin-stats-grid" id="admin-stats-grid"></div>
-
+ 
       <!-- Pending users -->
       <div class="card" style="margin-bottom:20px;">
         <div class="card-header">
@@ -872,7 +873,7 @@
           <div class="empty-state"><div class="icon">✅</div><p>درخواست جدیدی وجود ندارد</p></div>
         </div>
       </div>
-
+ 
       <!-- All users -->
       <div class="card">
         <div class="card-header">
@@ -881,7 +882,7 @@
         <div class="card-body" id="admin-users-list"></div>
       </div>
     </div>
-
+ 
     <!-- Profile Page -->
     <div class="page" id="page-profile">
       <div style="max-width:500px;">
@@ -915,7 +916,7 @@
             </div>
           </div>
         </div>
-
+ 
         <!-- my stats -->
         <div class="card" style="margin-top:16px;">
           <div class="card-header"><div class="card-title">📊 آمار من</div></div>
@@ -923,17 +924,17 @@
         </div>
       </div>
     </div>
-
+ 
   </div>
 </main>
-
+ 
 <!-- Modals -->
-
+ 
 <!-- Property Modal -->
 <div class="modal-overlay" id="prop-modal">
   <div class="modal" style="width:600px;">
     <div class="modal-title">🏠 ثبت ملک جدید</div>
-
+ 
     <!-- Step 1 -->
     <div id="prop-step1">
       <div style="margin-bottom:14px;font-size:13px;color:var(--text2);">ابتدا نوع ملک را انتخاب کنید:</div>
@@ -949,7 +950,7 @@
         <button class="btn btn-ghost" onclick="closeModal('prop-modal')">انصراف</button>
       </div>
     </div>
-
+ 
     <!-- Step 2 -->
     <div id="prop-step2" style="display:none;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
@@ -965,13 +966,13 @@
           <label>وضعیت</label>
           <select id="p-status" onchange="updatePriceFields()"></select>
         </div>
-
+ 
         <!-- فیلد قیمت فروش -->
         <div class="form-group" id="price-sale-wrap">
           <label>قیمت فروش (تومان)</label>
           <input type="number" id="p-price" placeholder="0">
         </div>
-
+ 
         <!-- فیلدهای رهن و اجاره -->
         <div class="form-group" id="price-mortgage-wrap" style="display:none;">
           <label>مبلغ رهن (تومان)</label>
@@ -990,7 +991,7 @@
           <input type="text" id="p-owner-phone" placeholder="09...">
         </div>
       </div>
-
+ 
       <!-- آپارتمان -->
       <div id="fields-apartment" class="prop-extra-fields" style="display:none;">
         <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
@@ -1018,7 +1019,7 @@
           <div class="form-group full"><label>امکانات ویژه</label><input type="text" id="p-features" placeholder="مثال: کابینت MDF، کف پارکت، سیستم هوشمند، ..."></div>
         </div>
       </div>
-
+ 
       <!-- ویلا -->
       <div id="fields-villa" class="prop-extra-fields" style="display:none;">
         <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
@@ -1048,7 +1049,7 @@
           <div class="form-group full"><label>امکانات ویژه</label><input type="text" id="v-features" placeholder="مثال: سالن ورزشی، سونا، اتاق بازی، ..."></div>
         </div>
       </div>
-
+ 
       <!-- زمین -->
       <div id="fields-land" class="prop-extra-fields" style="display:none;">
         <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
@@ -1070,7 +1071,7 @@
           <div class="form-group"><label>قیمت هر متر (تومان)</label><input type="number" id="l-price-per-m" placeholder="0"></div>
         </div>
       </div>
-
+ 
       <!-- تجاری -->
       <div id="fields-commercial" class="prop-extra-fields" style="display:none;">
         <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
@@ -1098,7 +1099,7 @@
           <div class="form-group full"><label>امکانات ویژه</label><input type="text" id="cm-features" placeholder="مثال: سیستم اعلام حریق، دوربین مداربسته، ..."></div>
         </div>
       </div>
-
+ 
       <!-- مشارکت در ساخت -->
       <div id="fields-partnership" class="prop-extra-fields" style="display:none;">
         <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
@@ -1116,7 +1117,7 @@
           <div class="form-group"><label>قیمت هر متر زمین (تومان)</label><input type="number" id="pt-price-per-m" placeholder="0"></div>
         </div>
       </div>
-
+ 
       <!-- سایر -->
       <div id="fields-other" class="prop-extra-fields" style="display:none;">
         <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
@@ -1126,18 +1127,18 @@
           <div class="form-group"><label>سال ساخت</label><input type="number" id="o-year" placeholder="0"></div>
         </div>
       </div>
-
+ 
       <div style="margin-top:14px;">
         <div class="form-group">
           <label>توضیحات و ویژگی‌های دیگر</label>
           <textarea id="p-notes" placeholder="امکانات، نکات مهم..."></textarea>
         </div>
       </div>
-
+ 
       <!-- بخش رسانه -->
       <div style="border-top:1px solid var(--border);margin:16px 0 12px;"></div>
       <div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-weight:700;">📸 تصاویر و ویدیو ملک</div>
-
+ 
       <!-- آپلود تصویر -->
       <div style="margin-bottom:14px;">
         <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:8px;">🖼️ تصاویر</label>
@@ -1153,7 +1154,7 @@
         <input type="file" id="p-images-input" accept="image/*" multiple style="display:none" onchange="handleImgSelect(event)">
         <div id="img-preview-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;"></div>
       </div>
-
+ 
       <!-- لینک ویدیو -->
       <div style="margin-bottom:4px;">
         <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:8px;">🎬 ویدیو ملک</label>
@@ -1163,7 +1164,7 @@
         </div>
         <div id="video-links-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
       </div>
-
+ 
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="closeModal('prop-modal')">انصراف</button>
         <button class="btn btn-primary" onclick="saveProperty()">💾 ذخیره</button>
@@ -1171,7 +1172,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Gallery Modal -->
 <div class="modal-overlay" id="gallery-modal">
   <div class="modal" style="width:780px;max-height:90vh;">
@@ -1198,7 +1199,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Client Modal -->
 <div class="modal-overlay" id="client-modal">
   <div class="modal" style="width:640px;">
@@ -1232,10 +1233,10 @@
         </select>
       </div>
     </div>
-
+ 
     <!-- فیلدهای داینامیک بر اساس نوع درخواست -->
     <div id="c-dynamic-fields" style="margin-top:4px;"></div>
-
+ 
     <div class="form-grid" style="margin-top:14px;">
       <div class="form-group">
         <label>منطقه / محله مورد نظر</label>
@@ -1258,14 +1259,14 @@
         <textarea id="c-notes" placeholder="خواسته‌ها، شرایط خاص، توضیحات..."></textarea>
       </div>
     </div>
-
+ 
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('client-modal')">انصراف</button>
       <button class="btn btn-primary" onclick="saveClient()">💾 ذخیره</button>
     </div>
   </div>
 </div>
-
+ 
 <!-- Advisor Modal -->
 <div class="modal-overlay" id="advisor-modal">
   <div class="modal">
@@ -1296,7 +1297,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Deal Modal -->
 <div class="modal-overlay" id="deal-modal">
   <div class="modal">
@@ -1335,7 +1336,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Telegram Manual Modal -->
 <div class="modal-overlay" id="tg-modal">
   <div class="modal">
@@ -1368,7 +1369,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Reminder Modal -->
 <div class="modal-overlay" id="reminder-modal">
   <div class="modal">
@@ -1402,28 +1403,28 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Notification -->
 <div class="notification" id="notif">✅ <span id="notif-text"></span></div>
-
+ 
 <script>
 // ============================================================
 //  FIREBASE — AUTH & DATA LAYER
 // ============================================================
 let currentUser = null;
-
+ 
 // helper: wait until Firebase is loaded
 function fb(){ return window._fb; }
-
+ 
 // authInit is now handled by onAuthStateChanged in the module script above
 function authInit(){ /* handled by Firebase onAuthStateChanged */ }
-
-function showAuthScreen(){
+ 
+window.showAuthScreen = function showAuthScreen(){
   document.getElementById('auth-screen').style.display = 'flex';
   document.querySelector('.sidebar').style.display = 'none';
   document.querySelector('.main').style.display = 'none';
 }
-
+ 
 async function showApp(){
   document.getElementById('auth-screen').style.display = 'none';
   document.querySelector('.sidebar').style.display = 'flex';
@@ -1439,8 +1440,8 @@ async function showApp(){
   await loadUserState();
   renderProperties(); renderClients(); renderAdvisors(); renderDeals(); renderTgPosts(); updateCounts(); renderDashboard();
 }
-
-async function doLogin(){
+ 
+async window.doLogin = function doLogin(){
   const email    = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
   document.getElementById('login-error').style.display = 'none';
@@ -1463,24 +1464,24 @@ async function doLogin(){
     if(btn){ btn.disabled = false; btn.textContent = 'ورود'; }
   }
 }
-
+ 
 function showLoginError(msg){
   const el = document.getElementById('login-error');
   el.textContent = msg; el.style.display = 'block';
 }
-
-async function doRegister(){
+ 
+async window.doRegister = function doRegister(){
   const fullname = document.getElementById('reg-fullname').value.trim();
   const email    = document.getElementById('reg-username').value.trim().toLowerCase();
   const phone    = document.getElementById('reg-phone').value.trim();
   const pass     = document.getElementById('reg-password').value;
   const pass2    = document.getElementById('reg-password2').value;
   document.getElementById('reg-error').style.display = 'none';
-
+ 
   if(!fullname || !email || !pass){ showRegError('همه فیلدها الزامی هستند'); return; }
   if(pass !== pass2){ showRegError('رمز عبور و تکرار آن یکسان نیستند'); return; }
   if(pass.length < 6){ showRegError('رمز عبور حداقل ۶ کاراکتر باشد'); return; }
-
+ 
   const btn = document.querySelector('#auth-register-form .btn-primary');
   if(btn){ btn.disabled = true; btn.textContent = '...'; }
   try {
@@ -1516,13 +1517,13 @@ async function doRegister(){
     if(btn){ btn.disabled = false; btn.textContent = 'ثبت‌نام'; }
   }
 }
-
+ 
 function showRegError(msg){
   const el = document.getElementById('reg-error');
   el.textContent = msg; el.style.display = 'block';
 }
-
-async function sendPasswordReset(){
+ 
+async window.sendPasswordReset = function sendPasswordReset(){
   const email = document.getElementById('login-username').value.trim();
   if(!email){ showLoginError('ابتدا ایمیل خود را وارد کنید'); return; }
   try {
@@ -1534,8 +1535,8 @@ async function sendPasswordReset(){
     showLoginError('خطا: ' + (e.code==='auth/user-not-found' ? 'ایمیل یافت نشد' : e.message));
   }
 }
-
-function switchAuthTab(tab){
+ 
+window.switchAuthTab = function switchAuthTab(tab){
   document.getElementById('auth-login-form').style.display   = tab==='login'    ? 'flex' : 'none';
   document.getElementById('auth-register-form').style.display= tab==='register' ? 'flex' : 'none';
   document.getElementById('auth-pending-box').style.display  = 'none';
@@ -1545,8 +1546,8 @@ function switchAuthTab(tab){
   document.getElementById('login-error').style.display = 'none';
   document.getElementById('reg-error').style.display = 'none';
 }
-
-async function doLogout(){
+ 
+async window.doLogout = function doLogout(){
   document.getElementById('user-menu').style.display = 'none';
   await fb().signOut(fb().auth);
   // onAuthStateChanged → showAuthScreen() is called automatically
@@ -1554,7 +1555,7 @@ async function doLogout(){
   document.getElementById('login-password').value = '';
   switchAuthTab('login');
 }
-
+ 
 function showUserMenu(){
   const m = document.getElementById('user-menu');
   m.style.display = m.style.display === 'none' ? 'block' : 'none';
@@ -1565,7 +1566,7 @@ document.addEventListener('click', e => {
     menu.style.display = 'none';
   }
 });
-
+ 
 // ============================================================
 //  FIRESTORE DATA LAYER
 // ============================================================
@@ -1577,18 +1578,18 @@ document.addEventListener('click', e => {
 //   users/{uid}/tgposts/{id}      → پست تلگرام
 //   users/{uid}/reminders/{id}    → یادآور
 //   advisors/{uid}                → for admin: readable list of advisors
-
+ 
 async function loadUserState(){
   const uid = currentUser.id;
   const colPath = currentUser.role === 'admin'
     ? null   // admin loads all; handled per collection
     : `users/${uid}`;
-
+ 
   async function loadCol(col){
     const q = await fb().getDocs(fb().collection(fb().db, `users/${uid}/${col}`));
     return q.docs.map(d => ({ ...d.data(), id: d.id }));
   }
-
+ 
   if(currentUser.role === 'admin'){
     // admin: load ALL users' data
     const usersSnap = await fb().getDocs(fb().collection(fb().db, 'users'));
@@ -1628,7 +1629,7 @@ async function loadUserState(){
     state.reminders  = reminders;
   }
 }
-
+ 
 // save a whole collection (backwards-compat wrapper — writes all items)
 async function save(colName, dataArray){
   // this is called with the full array; we just persist the state
@@ -1644,12 +1645,12 @@ async function save(colName, dataArray){
     await fb().setDoc(fb().doc(fb().db, `users/${uid}/${col}/${docId}`), _cleanObj(item));
   }
 }
-
+ 
 // helper: remove undefined values from objects (Firestore rejects them)
 function _cleanObj(obj){
   return JSON.parse(JSON.stringify(obj, (k,v) => v === undefined ? null : v));
 }
-
+ 
 // save a single document to Firestore
 async function _saveDoc(col, data){
   const uid = currentUser.id;
@@ -1658,13 +1659,13 @@ async function _saveDoc(col, data){
   await fb().setDoc(fb().doc(fb().db, `users/${uid}/${col}/${docId}`), _cleanObj(data));
   return data;
 }
-
+ 
 // delete a single document
 async function _deleteDoc(col, id){
   const uid = currentUser.id;
   await fb().deleteDoc(fb().doc(fb().db, `users/${uid}/${col}/${String(id)}`));
 }
-
+ 
 // ============================================================
 //  ADMIN PANEL
 // ============================================================
@@ -1679,20 +1680,20 @@ async function updatePendingBadge(){
     }
   } catch(e){}
 }
-
-async function renderAdminPage(){
+ 
+async window.renderAdminPage = function renderAdminPage(){
   const usersSnap = await fb().getDocs(fb().collection(fb().db, 'users'));
   const users = usersSnap.docs.map(d => ({ ...d.data(), id: d.id }));
   const advisors = users.filter(u => u.role === 'advisor');
   const pending  = advisors.filter(u => u.status === 'pending');
   const active   = advisors.filter(u => u.status === 'active');
-
+ 
   // stats from already-loaded state
   const totalProps   = state.properties.length;
   const totalClients = state.clients.length;
   const totalDeals   = state.deals.length;
   const totalComm    = state.deals.reduce((s,d) => s+(parseFloat(d.commission)||0), 0);
-
+ 
   document.getElementById('admin-stats-grid').innerHTML = `
     <div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent)">${advisors.length}</div><div class="admin-stat-lbl">کل مشاوران</div></div>
     <div class="admin-stat"><div class="admin-stat-val" style="color:var(--green)">${active.length}</div><div class="admin-stat-lbl">مشاور فعال</div></div>
@@ -1701,7 +1702,7 @@ async function renderAdminPage(){
     <div class="admin-stat"><div class="admin-stat-val" style="color:var(--purple)">${totalClients}</div><div class="admin-stat-lbl">کل مشتریان</div></div>
     <div class="admin-stat"><div class="admin-stat-val" style="color:var(--green)">${totalDeals}</div><div class="admin-stat-lbl">کل معاملات</div></div>
   `;
-
+ 
   // pending list
   const pendingEl = document.getElementById('admin-pending-list');
   if(!pending.length){
@@ -1719,7 +1720,7 @@ async function renderAdminPage(){
       </div>
     `).join('');
   }
-
+ 
   // all advisors list
   const allEl = document.getElementById('admin-users-list');
   if(!advisors.length){
@@ -1757,16 +1758,16 @@ async function renderAdminPage(){
     </tbody></table>`;
   }
 }
-
-async function approveUser(id){
+ 
+async window.approveUser = function approveUser(id){
   try {
     await fb().updateDoc(fb().doc(fb().db, 'users', id), { status: 'active' });
     await renderAdminPage(); updatePendingBadge();
     notify('کاربر تأیید شد ✅');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
-
-async function rejectUser(id){
+ 
+async window.rejectUser = function rejectUser(id){
   if(!confirm('این درخواست رد و حذف شود؟')) return;
   try {
     await fb().deleteDoc(fb().doc(fb().db, 'users', id));
@@ -1774,20 +1775,20 @@ async function rejectUser(id){
     notify('درخواست رد شد','var(--red)');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
-
-async function disableUser(id){
+ 
+async window.disableUser = function disableUser(id){
   try {
     await fb().updateDoc(fb().doc(fb().db, 'users', id), { status: 'disabled' });
     await renderAdminPage();
     notify('کاربر غیرفعال شد','var(--red)');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
-
-function resetUserPass(id){
+ 
+window.resetUserPass = function resetUserPass(id){
   // با Firebase Admin SDK امکان‌پذیر است؛ در کلاینت فقط می‌توانید به کاربر پیام ارسال کنید
   notify('برای ریست رمز، کاربر باید از صفحه ورود "فراموشی رمز" را بزند','var(--accent)');
 }
-
+ 
 // ============================================================
 //  PROFILE PAGE
 // ============================================================
@@ -1812,8 +1813,8 @@ function renderProfilePage(){
     </div>
   `;
 }
-
-async function saveProfile(){
+ 
+async window.saveProfile = function saveProfile(){
   const fullname  = document.getElementById('profile-fullname').value.trim();
   const phone     = document.getElementById('profile-phone').value.trim();
   const newpass   = document.getElementById('profile-newpass').value;
@@ -1842,7 +1843,7 @@ async function saveProfile(){
     }
   }
 }
-
+ 
 // State
 let state = {
   properties: [],
@@ -1854,7 +1855,7 @@ let state = {
   calMonth: new Date().getMonth(),
   calYear: new Date().getFullYear()
 };
-
+ 
 // Navigation
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1875,17 +1876,17 @@ function showPage(name) {
   if(name==='profile') renderProfilePage();
   document.getElementById('user-menu').style.display = 'none';
 }
-
+ 
 // Modal
-function openModal(id){
+window.openModal = function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='client-modal') updateClientFields();
 }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+window.closeModal = function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
 });
-
+ 
 // Notification
 function notify(msg, color='var(--green)') {
   const n = document.getElementById('notif');
@@ -1896,16 +1897,16 @@ function notify(msg, color='var(--green)') {
   n.classList.add('show');
   setTimeout(()=>n.classList.remove('show'), 2500);
 }
-
+ 
 // Format number
 function fmt(n) {
   if(!n) return '۰';
   return Number(n).toLocaleString('fa-IR');
 }
-
+ 
 // --- PROPERTY TYPE SELECTION ---
 let currentPropType = '';
-
+ 
 // وضعیت‌های مخصوص هر نوع ملک
 const propStatusOptions = {
   'آپارتمان': [
@@ -1954,25 +1955,25 @@ const propStatusOptions = {
     { value: 'sold',          label: '✅ فروخته شده' },
   ],
 };
-
-function updateStatusOptions(type) {
+ 
+window.updateStatusOptions = function updateStatusOptions(type) {
   const select = document.getElementById('p-status');
   const options = propStatusOptions[type] || propStatusOptions['سایر'];
   select.innerHTML = options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
   updatePriceFields();
 }
-
-function updatePriceFields() {
+ 
+window.updatePriceFields = function updatePriceFields() {
   const status = document.getElementById('p-status').value;
   const saleWrap     = document.getElementById('price-sale-wrap');
   const mortgageWrap = document.getElementById('price-mortgage-wrap');
   const rentWrap     = document.getElementById('price-rent-wrap');
-
+ 
   // پنهان کردن همه
   saleWrap.style.display     = 'none';
   mortgageWrap.style.display = 'none';
   rentWrap.style.display     = 'none';
-
+ 
   if (status === 'rent') {
     // فقط اجاره
     mortgageWrap.style.display = 'block';
@@ -1992,19 +1993,19 @@ function updatePriceFields() {
     saleWrap.style.display = 'block';
   }
 }
-
-function selectPropType(type) {
+ 
+window.selectPropType = function selectPropType(type) {
   currentPropType = type;
   document.getElementById('prop-step1').style.display = 'none';
   document.getElementById('prop-step2').style.display = 'block';
   document.getElementById('prop-type-badge').textContent = type;
-
+ 
   // آپدیت وضعیت‌ها بر اساس نوع ملک
   updateStatusOptions(type);
-
+ 
   // Hide all extra fields
   document.querySelectorAll('.prop-extra-fields').forEach(el => el.style.display = 'none');
-
+ 
   // Show relevant fields
   const map = {
     'آپارتمان': 'fields-apartment',
@@ -2017,35 +2018,35 @@ function selectPropType(type) {
   const target = map[type];
   if(target) document.getElementById(target).style.display = 'block';
 }
-
-function backToPropStep1() {
+ 
+window.backToPropStep1 = function backToPropStep1() {
   document.getElementById('prop-step1').style.display = 'block';
   document.getElementById('prop-step2').style.display = 'none';
   currentPropType = '';
 }
-
+ 
 function gVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
-
+ 
 // --- PROPERTIES ---
 // --- MEDIA (images + video) ---
 let currentImages = []; // [{data: base64, name: str}]
 let currentVideos = []; // [url string]
 let lightboxImages = [];
 let lightboxIndex = 0;
-
+ 
 function handleImgSelect(e){
   const files = Array.from(e.target.files);
   loadImageFiles(files);
   e.target.value = '';
 }
-
+ 
 function handleImgDrop(e){
   e.preventDefault();
   document.getElementById('img-drop-zone').style.borderColor = 'var(--border)';
   const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
   loadImageFiles(files);
 }
-
+ 
 function loadImageFiles(files){
   const remaining = 10 - currentImages.length;
   if(remaining <= 0){ notify('حداکثر ۱۰ تصویر مجاز است','var(--red)'); return; }
@@ -2059,7 +2060,7 @@ function loadImageFiles(files){
     reader.readAsDataURL(file);
   });
 }
-
+ 
 function renderImgPreview(){
   const grid = document.getElementById('img-preview-grid');
   if(!currentImages.length){ grid.innerHTML=''; return; }
@@ -2071,18 +2072,18 @@ function renderImgPreview(){
     </div>
   `).join('');
 }
-
+ 
 function removeCurrentImg(i){
   currentImages.splice(i, 1);
   renderImgPreview();
 }
-
+ 
 function previewSingleImg(i){
   lightboxImages = currentImages.map(x => x.data);
   lightboxIndex = i;
   openLightbox();
 }
-
+ 
 function addVideoLink(){
   const input = document.getElementById('p-video-url');
   const url = input.value.trim();
@@ -2091,7 +2092,7 @@ function addVideoLink(){
   input.value = '';
   renderVideoLinks();
 }
-
+ 
 function renderVideoLinks(){
   const el = document.getElementById('video-links-list');
   if(!currentVideos.length){ el.innerHTML=''; return; }
@@ -2103,46 +2104,46 @@ function renderVideoLinks(){
     </div>
   `).join('');
 }
-
+ 
 function removeVideo(i){
   currentVideos.splice(i, 1);
   renderVideoLinks();
 }
-
+ 
 function resetMediaInputs(){
   currentImages = [];
   currentVideos = [];
   renderImgPreview();
   renderVideoLinks();
 }
-
+ 
 // Lightbox
 function openLightbox(){
   const lb = document.getElementById('lightbox');
   lb.style.display = 'flex';
   updateLightboxImg();
 }
-
+ 
 function closeLightbox(){
   document.getElementById('lightbox').style.display = 'none';
 }
-
+ 
 function updateLightboxImg(){
   document.getElementById('lightbox-img').src = lightboxImages[lightboxIndex];
   document.getElementById('lightbox-counter').textContent =
     `${lightboxIndex+1} از ${lightboxImages.length}`;
 }
-
+ 
 function lightboxPrev(){
   lightboxIndex = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
   updateLightboxImg();
 }
-
+ 
 function lightboxNext(){
   lightboxIndex = (lightboxIndex + 1) % lightboxImages.length;
   updateLightboxImg();
 }
-
+ 
 document.addEventListener('keydown', e => {
   const lb = document.getElementById('lightbox');
   if(lb && lb.style.display === 'flex'){
@@ -2151,16 +2152,16 @@ document.addEventListener('keydown', e => {
     if(e.key === 'Escape') closeLightbox();
   }
 });
-
+ 
 // Gallery viewer
-function openGallery(id){
+window.openGallery = function openGallery(id){
   const p = state.properties.find(x => x.id === id);
   if(!p) return;
   document.getElementById('gallery-modal-title').textContent = `📸 گالری — ${p.title}`;
-
+ 
   const imgs = (p.images || []).map(img => typeof img === 'string' ? {data:img,name:''} : img);
   const vids = p.videos || [];
-
+ 
   const imgEl = document.getElementById('gallery-images');
   const noImg = document.getElementById('gallery-no-img');
   if(imgs.length){
@@ -2176,7 +2177,7 @@ function openGallery(id){
     noImg.style.display = 'block';
     imgEl.innerHTML = '';
   }
-
+ 
   const vidSec = document.getElementById('gallery-videos-section');
   const vidEl = document.getElementById('gallery-videos');
   if(vids.length){
@@ -2190,17 +2191,17 @@ function openGallery(id){
   } else {
     vidSec.style.display = 'none';
   }
-
+ 
   openModal('gallery-modal');
 }
-
-async function saveProperty(){
+ 
+async window.saveProperty = function saveProperty(){
   const title = document.getElementById('p-title').value.trim();
   if(!title){ notify('عنوان ملک را وارد کنید','var(--red)'); return; }
-
+ 
   const btn = document.querySelector('#prop-modal .btn-primary');
   if(btn){ btn.disabled=true; btn.textContent='در حال ذخیره...'; }
-
+ 
   try {
     const status = document.getElementById('p-status').value;
     let priceData = {};
@@ -2208,16 +2209,16 @@ async function saveProperty(){
     else if(status==='mortgage'){ priceData={mortgage:gVal('p-mortgage')}; }
     else if(status==='rent_mortgage'){ priceData={mortgage:gVal('p-mortgage'),rent:gVal('p-rent')}; }
     else { priceData={price:gVal('p-price')}; }
-
+ 
     const extra = {};
     document.querySelectorAll('#prop-step2 input, #prop-step2 select, #prop-step2 textarea').forEach(el => {
       if(el.id && !['p-title','p-status','p-price','p-mortgage','p-rent','p-owner-name','p-owner-phone','p-notes','p-images-input','p-video-url'].includes(el.id)){
         extra[el.id] = el.value;
       }
     });
-
+ 
     const pricePerMeter = gVal('p-price-per-meter');
-
+ 
     // آپلود تصاویر به Firebase Storage
     const uploadedImages = [];
     for(const img of currentImages){
@@ -2234,7 +2235,7 @@ async function saveProperty(){
         uploadedImages.push(img); // already uploaded
       }
     }
-
+ 
     const propData = {
       title, type: currentPropType, status, ...priceData,
       pricePerMeter: pricePerMeter || null,
@@ -2246,12 +2247,12 @@ async function saveProperty(){
       createdAt: fb().serverTimestamp(),
       userId: currentUser.id
     };
-
+ 
     const docId = String(Date.now());
     propData.id = docId;
     await fb().setDoc(fb().doc(fb().db, `users/${currentUser.id}/properties/${docId}`), _cleanObj(propData));
     state.properties.unshift(propData);
-
+ 
     currentImages = []; currentVideos = [];
     resetMediaInputs();
     document.getElementById('p-title').value='';
@@ -2270,8 +2271,8 @@ async function saveProperty(){
     if(btn){ btn.disabled=false; btn.textContent='💾 ذخیره'; }
   }
 }
-
-
+ 
+ 
 function renderProperties(){
   const q = document.getElementById('prop-search')?.value.toLowerCase()||'';
   const list = state.properties.filter(p => p.title.toLowerCase().includes(q)||(p.ownerName||'').toLowerCase().includes(q));
@@ -2325,8 +2326,8 @@ function renderProperties(){
   </tr>`).join('')}
   </tbody></table>`;
 }
-
-async function deleteProp(id){
+ 
+async window.deleteProp = function deleteProp(id){
   try {
     const prop = state.properties.find(p=>p.id===id);
     // حذف تصاویر از Storage
@@ -2343,13 +2344,13 @@ async function deleteProp(id){
     notify('ملک حذف شد','var(--red)');
   } catch(e){ notify('خطا در حذف','var(--red)'); }
 }
-
+ 
 // --- CLIENTS ---
 // --- CLIENT DYNAMIC FIELDS ---
 function updateClientFields() {
   const req = document.getElementById('c-request').value;
   const container = document.getElementById('c-dynamic-fields');
-
+ 
   const fg = (id, label, el) =>
     `<div class="form-group"><label>${label}</label>${el}</div>`;
   const fgFull = (id, label, el) =>
@@ -2362,7 +2363,7 @@ function updateClientFields() {
     `<select id="${id}">${opts.map(o => typeof o==='string'
       ? `<option>${o}</option>`
       : `<option value="${o.v}">${o.l}</option>`).join('')}</select>`;
-
+ 
   const propTypeSel = sel('c-prop-type', [
     'آپارتمان','ویلا','زمین','تجاری','مشارکت در ساخت','سایر'
   ]);
@@ -2393,10 +2394,10 @@ function updateClientFields() {
   const partnerUsageSel = sel('c-partner-usage', [
     'مسکونی','مسکونی-تجاری','تجاری'
   ]);
-
+ 
   let html = '<div style="border-top:1px solid var(--border);margin:12px 0 10px;"></div>';
   html += `<div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:10px;">`;
-
+ 
   if(req === 'خرید') {
     html += `🏠 مشخصات ملک مورد نظر</div><div class="form-grid">`;
     html += fg('c-prop-type','نوع ملک', propTypeSel);
@@ -2414,7 +2415,7 @@ function updateClientFields() {
     html += fg('c-max-year','حداکثر سن بنا (سال)', numInput('c-max-year','0'));
     html += fgFull('c-extra-needs','امکانات الزامی', txtInput('c-extra-needs','مثال: استخر، سیستم هوشمند، ...'));
     html += '</div>';
-
+ 
   } else if(req === 'اجاره') {
     html += `🔑 مشخصات اجاره مورد نظر</div><div class="form-grid">`;
     html += fg('c-prop-type','نوع ملک', propTypeSel);
@@ -2429,7 +2430,7 @@ function updateClientFields() {
     html += fg('c-pets','حیوان خانگی', sel('c-pets',[{v:'',l:'ندارد'},{v:'دارد',l:'دارد (نیاز به تأیید مالک)'}]));
     html += fgFull('c-extra-needs','شرایط خاص', txtInput('c-extra-needs','مثال: بچه‌دار، محدودیت زمانی، ...'));
     html += '</div>';
-
+ 
   } else if(req === 'رهن') {
     html += `🤝 مشخصات رهن مورد نظر</div><div class="form-grid">`;
     html += fg('c-prop-type','نوع ملک', propTypeSel);
@@ -2442,7 +2443,7 @@ function updateClientFields() {
     html += fg('c-elevator','آسانسور', sel('c-elevator',[{v:'',l:'فرقی ندارد'},{v:'دارد',l:'الزامی'}]));
     html += fgFull('c-extra-needs','شرایط خاص', txtInput('c-extra-needs','مثال: مدت قرارداد، ...'));
     html += '</div>';
-
+ 
   } else if(req === 'رهن و اجاره') {
     html += `🔄 مشخصات رهن و اجاره مورد نظر</div><div class="form-grid">`;
     html += fg('c-prop-type','نوع ملک', propTypeSel);
@@ -2457,7 +2458,7 @@ function updateClientFields() {
     html += fg('c-convert-pref','ترجیح تبدیل رهن/اجاره', sel('c-convert-pref',[{v:'',l:'فرقی ندارد'},{v:'رهن بیشتر',l:'رهن بیشتر'},{v:'اجاره بیشتر',l:'اجاره بیشتر'}]));
     html += fgFull('c-extra-needs','شرایط خاص', txtInput('c-extra-needs','...'));
     html += '</div>';
-
+ 
   } else if(req === 'فروش') {
     html += `🏷️ مشخصات ملک برای فروش</div><div class="form-grid">`;
     html += fg('c-prop-type','نوع ملک', propTypeSel);
@@ -2471,7 +2472,7 @@ function updateClientFields() {
     html += fg('c-loan-status','وضعیت وام', sel('c-loan-status',[{v:'ندارد',l:'وام ندارد'},{v:'وام قابل انتقال',l:'وام قابل انتقال'},{v:'وام غیرقابل انتقال',l:'وام غیرقابل انتقال'}]));
     html += fgFull('c-extra-needs','توضیحات ملک', txtInput('c-extra-needs','مثال: تازه بازسازی، بدون رهن، ...'));
     html += '</div>';
-
+ 
   } else if(req === 'مشارکت در ساخت') {
     html += `🏗️ مشخصات مشارکت در ساخت</div><div class="form-grid">`;
     html += fg('c-partner-role', 'نقش در مشارکت', sel('c-partner-role',[{v:'مالک',l:'🏠 مالک زمین/ملک'},{v:'سازنده',l:'🏗️ سازنده/مجری'}]));
@@ -2485,11 +2486,11 @@ function updateClientFields() {
     html += fgFull('c-extra-needs','شرایط و توضیحات', txtInput('c-extra-needs','مثال: مشارکت با پیش‌پرداخت، بلامانع برای پیش‌فروش، ...'));
     html += '</div>';
   }
-
+ 
   container.innerHTML = html;
 }
-
-async function saveClient(){
+ 
+async window.saveClient = function saveClient(){
   const name = document.getElementById('c-name').value.trim();
   if(!name){ notify('نام مشتری را وارد کنید','var(--red)'); return; }
   const c = {
@@ -2513,8 +2514,8 @@ async function saveClient(){
     notify('مشتری ثبت شد ✅');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
-
-
+ 
+ 
 function renderClients(){
   const q = document.getElementById('client-search')?.value.toLowerCase()||'';
   const list = state.clients.filter(c=>c.name.toLowerCase().includes(q)||(c.phone||'').includes(q));
@@ -2525,7 +2526,7 @@ function renderClients(){
     'خرید':'🏠','اجاره':'🔑','رهن':'🤝','رهن و اجاره':'🔄',
     'فروش':'🏷️','مشارکت در ساخت':'🏗️'
   };
-
+ 
   const getBudgetLabel = (c) => {
     const d = c.dynFields || {};
     const req = c.request;
@@ -2545,7 +2546,7 @@ function renderClients(){
     }
     return d.budget ? fmt2(d.budget) : (c.budget ? fmt2(c.budget) : '—');
   };
-
+ 
   const getDetails = (c) => {
     const d = c.dynFields || {};
     const parts = [];
@@ -2556,7 +2557,7 @@ function renderClients(){
     if(d['partner-role']) parts.push(d['partner-role']);
     return parts.length ? parts.join(' · ') : '—';
   };
-
+ 
   el.innerHTML = `<table><thead><tr>
     <th>نام</th><th>موبایل</th><th>درخواست</th><th>بودجه / مبلغ</th>
     <th>جزئیات</th><th>منطقه</th><th>اولویت</th><th>یادداشت</th><th>عملیات</th>
@@ -2574,8 +2575,8 @@ function renderClients(){
   </tr>`).join('')}
   </tbody></table>`;
 }
-
-async function deleteClient(id){
+ 
+async window.deleteClient = function deleteClient(id){
   try {
     await _deleteDoc('clients', id);
     state.clients = state.clients.filter(c=>c.id!==id);
@@ -2583,10 +2584,10 @@ async function deleteClient(id){
     notify('مشتری حذف شد','var(--red)');
   } catch(e){ notify('خطا در حذف','var(--red)'); }
 }
-
+ 
 // --- ADVISORS ---
 const advColors = ['#e8a838','#3fb950','#58a6ff','#bc8cff','#f85149','#79c0ff'];
-function saveAdvisor(){
+window.saveAdvisor = function saveAdvisor(){
   const name = document.getElementById('adv-name').value.trim();
   if(!name){ notify('نام مشاور را وارد کنید','var(--red)'); return; }
   const a = {
@@ -2603,7 +2604,7 @@ function saveAdvisor(){
   renderAdvisors();
   notify('مشاور با موفقیت ثبت شد ✅');
 }
-
+ 
 function renderAdvisors(){
   const el = document.getElementById('advisor-grid');
   if(!state.advisors.length){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🤝</div><p>هنوز مشاوری ثبت نشده</p></div>'; return; }
@@ -2621,8 +2622,8 @@ function renderAdvisors(){
     </div>
   `).join('');
 }
-
-async function deleteAdvisor(id){
+ 
+async window.deleteAdvisor = function deleteAdvisor(id){
   try {
     await _deleteDoc('advisors', id);
     state.advisors = state.advisors.filter(a=>a.id!==id);
@@ -2630,9 +2631,9 @@ async function deleteAdvisor(id){
     notify('مشاور حذف شد','var(--red)');
   } catch(e){ notify('خطا در حذف','var(--red)'); }
 }
-
+ 
 // --- DEALS ---
-function saveDeal(){
+window.saveDeal = function saveDeal(){
   const title = document.getElementById('d-title').value.trim();
   if(!title){ notify('عنوان معامله را وارد کنید','var(--red)'); return; }
   const d = {
@@ -2650,7 +2651,7 @@ function saveDeal(){
   renderDeals(); updateCounts();
   notify('معامله با موفقیت ثبت شد ✅');
 }
-
+ 
 function renderDeals(){
   const el = document.getElementById('deals-table');
   if(!state.deals.length){ el.innerHTML='<div class="empty-state"><div class="icon">📋</div><p>هنوز معامله‌ای ثبت نشده</p></div>'; return; }
@@ -2666,21 +2667,21 @@ function renderDeals(){
   </tr>`).join('')}
   </tbody></table>`;
 }
-
+ 
 function deleteDeal(id){
   state.deals = state.deals.filter(d=>d.id!==id);
   save('deals', state.deals);
   renderDeals(); updateCounts();
   notify('معامله حذف شد','var(--red)');
 }
-
+ 
 // --- TELEGRAM ---
 function loadTelegramChannel(){
   const link = document.getElementById('tg-link').value.trim();
   if(!link){ notify('لینک کانال را وارد کنید','var(--red)'); return; }
   notify('لینک کانال ذخیره شد. برای دیدن فایل‌ها، دسترسی مستقیم به API تلگرام لازم است.');
 }
-
+ 
 function saveTgPost(){
   const title = document.getElementById('tg-title').value.trim();
   if(!title){ notify('عنوان را وارد کنید','var(--red)'); return; }
@@ -2698,7 +2699,7 @@ function saveTgPost(){
   renderTgPosts();
   notify('فایل تلگرام ذخیره شد ✅');
 }
-
+ 
 function renderTgPosts(){
   const el = document.getElementById('tg-posts-list');
   if(!state.tgPosts.length){ el.innerHTML='<div class="empty-state"><div class="icon">📱</div><p>هنوز فایلی ذخیره نشده</p></div>'; return; }
@@ -2722,19 +2723,19 @@ function renderTgPosts(){
   </tr>`).join('')}
   </tbody></table>`;
 }
-
+ 
 function updateTgFollow(id, val){
   const p = state.tgPosts.find(x=>x.id===id);
   if(p){ p.follow=val; save('tgposts',state.tgPosts); renderTgPosts(); }
 }
-
+ 
 function deleteTgPost(id){
   state.tgPosts = state.tgPosts.filter(p=>p.id!==id);
   save('tgposts', state.tgPosts);
   renderTgPosts();
   notify('حذف شد','var(--red)');
 }
-
+ 
 // --- COMMISSION CALCULATOR ---
 function calcCommission(){
   const price = parseFloat(document.getElementById('calc-price').value)||0;
@@ -2755,10 +2756,10 @@ function calcCommission(){
   document.getElementById('calc-adv').textContent = fmt(Math.round(adv)) + ' ت';
   document.getElementById('calc-tax-val').textContent = fmt(Math.round(taxVal)) + ' ت';
 }
-
+ 
 // --- CALENDAR ---
 const monthNames = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
-
+ 
 function renderCalendar(){
   const y = state.calYear, m = state.calMonth;
   document.getElementById('cal-month-title').textContent = `${monthNames[m]} ${y}`;
@@ -2781,20 +2782,20 @@ function renderCalendar(){
   document.getElementById('calendar-container').innerHTML=html;
   renderRemindersList();
 }
-
+ 
 function changeMonth(dir){
   state.calMonth+=dir;
   if(state.calMonth>11){state.calMonth=0;state.calYear++;}
   if(state.calMonth<0){state.calMonth=11;state.calYear--;}
   renderCalendar();
 }
-
+ 
 function selectDate(date){
   document.getElementById('rem-date').value=date;
   openModal('reminder-modal');
 }
-
-function saveReminder(){
+ 
+window.saveReminder = function saveReminder(){
   const title = document.getElementById('rem-title').value.trim();
   if(!title){ notify('عنوان یادآوری را وارد کنید','var(--red)'); return; }
   const r = {
@@ -2811,7 +2812,7 @@ function saveReminder(){
   renderRemindersList();
   notify('یادآوری ذخیره شد ✅');
 }
-
+ 
 function renderRemindersList(){
   const el = document.getElementById('reminders-list');
   if(!state.reminders.length){ el.innerHTML='<div class="empty-state" style="padding:30px 0;"><div class="icon">📅</div><p>یادآوری‌ای ندارید</p></div>'; return; }
@@ -2828,14 +2829,14 @@ function renderRemindersList(){
     </div>
   `).join('');
 }
-
+ 
 function deleteReminder(id){
   state.reminders = state.reminders.filter(r=>r.id!==id);
   save('reminders', state.reminders);
   renderCalendar();
   notify('یادآوری حذف شد','var(--red)');
 }
-
+ 
 // --- DASHBOARD ---
 function renderDashboard(){
   document.getElementById('dash-props').textContent = state.properties.length;
@@ -2843,7 +2844,7 @@ function renderDashboard(){
   document.getElementById('dash-deals').textContent = state.deals.length;
   const totalComm = state.deals.reduce((s,d)=>s+(parseFloat(d.commission)||0),0);
   document.getElementById('dash-commission').textContent = totalComm>0?fmt(Math.round(totalComm/1000000))+'M':'۰';
-
+ 
   // Latest properties
   const propEl = document.getElementById('dash-prop-list');
   if(!state.properties.length){ propEl.innerHTML='<div class="empty-state"><div class="icon">🏠</div><p>هنوز ملکی ثبت نشده</p></div>'; }
@@ -2873,7 +2874,7 @@ function renderDashboard(){
       <td>${statusMap[p.status]||p.status}</td>
     </tr>`).join('')}</tbody></table>`;
   }
-
+ 
   // Today reminders
   const today = new Date().toISOString().split('T')[0];
   const todayRems = state.reminders.filter(r=>r.date===today);
@@ -2892,18 +2893,19 @@ function renderDashboard(){
     `).join('');
   }
 }
-
+ 
 // --- UTILS ---
 function updateCounts(){
   document.getElementById('prop-count').textContent = state.properties.length;
   document.getElementById('client-count').textContent = state.clients.length;
 }
-
+ 
 function clearForm(ids){ ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); }
-
+ 
 // Init — Firebase onAuthStateChanged in the module script handles auth startup
 // authInit() is a no-op here; kept for safety
 authInit();
 </script>
 </body>
 </html>
+ 
