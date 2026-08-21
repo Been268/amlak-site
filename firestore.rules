@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
+    }
+
+    match /users/{uid} {
+      // کاربران فقط پروفایل خودشان را می‌خوانند؛ مدیر داده‌های لازم را می‌خواند.
+      allow read: if isSelf(uid) || isAdmin();
+
+      // ثبت‌نام عمومی هرگز نمی‌تواند نقش مدیر ایجاد کند.
+      allow create: if isSelf(uid)
+        && request.resource.data.role == 'advisor'
+        && request.resource.data.status == 'pending'
+        && request.resource.data.email == request.auth.token.email;
+
+      // کاربر فقط اطلاعات نمایشی خودش را تغییر می‌دهد؛ نقش و وضعیت فقط مدیر.
+      allow update: if isAdmin()
+        || (isSelf(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['fullname', 'phone']));
+
+      allow delete: if isAdmin();
+
+      match /{collection}/{docId} {
+        allow read, create, update, delete: if isSelf(uid) || isAdmin();
+      }
+    }
+
+    // چت فقط برای مدیر یا یکی از دو UID داخل chatId مجاز است.
+    match /chats/{chatId}/messages/{messageId} {
+      function isParticipant() {
+        return signedIn() && chatId.split('_').hasAny([request.auth.uid]);
+      }
+
+      allow read: if isParticipant() || isAdmin();
+      allow create: if (isParticipant() || isAdmin())
+        && request.resource.data.from == request.auth.uid;
+      allow update, delete: if isParticipant() || isAdmin();
+    }
+  }
+}
