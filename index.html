@@ -364,16 +364,6 @@
   .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
   .empty-state p { font-size: 14px; }
 
-  /* Notification */
-  .notification {
-    position: fixed; top: 20px; left: 20px;
-    background: var(--surface); border: 1px solid var(--green);
-    border-radius: var(--radius); padding: 14px 20px;
-    font-size: 13px; color: var(--green); z-index: 9999;
-    transform: translateX(-120%); transition: transform 0.3s;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .notification.show { transform: translateX(0); }
 
   /* Tags input */
   .tags-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -687,14 +677,6 @@
   .auth-logo .icon { font-size: 36px !important; }
   .auth-logo h1 { font-size: 18px !important; }
 
-  /* notification */
-  .notification {
-    top: auto !important; bottom: 72px !important;
-    left: 12px !important; right: 12px !important;
-    width: auto !important;
-    transform: translateY(120%) !important;
-  }
-  .notification.show { transform: translateY(0) !important; }
 
   /* admin */
   .admin-stats-grid { grid-template-columns: repeat(2,1fr) !important; }
@@ -1879,8 +1861,6 @@
   </div>
 </div>
 
-<!-- Notification -->
-<div class="notification" id="notif">✅ <span id="notif-text"></span></div>
 
 <script>
 // ============================================================
@@ -2387,15 +2367,9 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
 });
 
-// Notification
+// Notification display intentionally disabled: no floating green bar on any page.
 function notify(msg, color='var(--green)') {
-  const n = document.getElementById('notif');
-  const nc = document.getElementById('notif-text');
-  nc.textContent = msg;
-  n.style.borderColor = color;
-  n.style.color = color;
-  n.classList.add('show');
-  setTimeout(()=>n.classList.remove('show'), 2500);
+  console.info('[site]', msg);
 }
 
 // Format number
