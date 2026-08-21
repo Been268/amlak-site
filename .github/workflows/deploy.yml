@@ -28,5 +28,7 @@ jobs:
       - name: Install Firebase CLI
         run: npm install --global firebase-tools
 
-      - name: Deploy Hosting, Firestore rules and Storage rules
-        run: firebase deploy --project syatem-amlak --only hosting,firestore:rules,storage --non-interactive
+      - name: Deploy Hosting and Firestore rules
+        # حساب سرویس فعلی مجوز serviceusage برای فعال‌سازی Storage API را ندارد.
+        # قواعد Storage در مخزن نگه داشته شده‌اند و پس از اعطای مجوز مناسب جداگانه deploy می‌شوند.
+        run: firebase deploy --project syatem-amlak --only hosting,firestore:rules --non-interactive
