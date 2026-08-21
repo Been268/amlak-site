@@ -1749,6 +1749,20 @@
   </div>
 </div>
 
+<!-- Client Details Modal -->
+<div class="modal-overlay" id="client-details-modal">
+  <div class="modal" style="width:820px;max-width:96vw;max-height:90vh;overflow:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+      <div class="modal-title" id="client-details-title" style="margin:0;">🔎 جزئیات مشتری</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('client-details-modal')" aria-label="بستن جزئیات مشتری">✕</button>
+    </div>
+    <div id="client-details-content"></div>
+    <div class="form-actions" style="margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('client-details-modal')">بستن</button>
+    </div>
+  </div>
+</div>
+
 <!-- Advisor Modal -->
 <div class="modal-overlay" id="advisor-modal">
   <div class="modal">
@@ -3425,9 +3439,64 @@ async function saveClient(){
 }
 
 
+const CLIENT_EXTRA_LABELS = {
+  'prop-type':'نوع ملک','budget':'حداکثر بودجه / مبلغ (تومان)','price-per-m':'حداکثر قیمت هر متر (تومان)',
+  'area-min':'حداقل متراژ (م²)','area-max':'حداکثر متراژ (م²)','rooms-min':'حداقل اتاق',
+  'floor-pref':'ترجیح طبقه','direction':'جهت ترجیحی','parking-need':'پارکینگ','elevator':'آسانسور',
+  'storage':'انباری','deed-pref':'نوع سند','max-year':'حداکثر سن بنا (سال)','extra-needs':'امکانات / شرایط خاص',
+  'rent-max':'حداکثر اجاره ماهیانه (تومان)','deposit-max':'حداکثر پیش‌پرداخت (تومان)','pets':'حیوان خانگی',
+  'convert-pref':'ترجیح تبدیل رهن/اجاره','sell-deadline':'مدت زمان برای فروش','loan-status':'وضعیت وام',
+  'partner-role':'نقش در مشارکت','partner-usage':'کاربری مورد نظر','partner-floors':'طبقات مورد نظر',
+  'owner-share-want':'سهم درخواستی مالک (%)','partner-timeline':'زمان‌بندی اجرا','comm-type':'نوع تجاری',
+  'usage':'کاربری'
+};
+const CLIENT_MONEY_KEYS = /(^|-)budget$|price|rent|deposit/i;
+const CLIENT_PRIORITY_LABELS = {high:'فوری', mid:'متوسط', low:'کم'};
+
+function clientDetailFallbackLabel(key){
+  return CLIENT_EXTRA_LABELS[key] || key.replace(/-/g, ' ');
+}
+
+function clientDetailValue(value, key=''){
+  if(value === null || value === undefined || value === '') return '';
+  if(typeof value === 'object') return Object.entries(value).map(([k,v]) => `${escapeHTML(k)}: ${escapeHTML(String(v))}`).join('، ');
+  const text = String(value);
+  if(CLIENT_MONEY_KEYS.test(key) && /^[-+]?\d+(\.\d+)?$/.test(text)) return `${fmt(text)} تومان`;
+  return escapeHTML(text).replace(/\n/g, '<br>');
+}
+
+function openClientDetails(id){
+  const c = state.clients.find(x => String(x.id) === String(id));
+  if(!c) return;
+  const request = c.request || 'نامشخص';
+  const priority = CLIENT_PRIORITY_LABELS[c.priority] || c.priority || 'نامشخص';
+  const dynEntries = Object.entries(c.dynFields || {}).filter(([,value]) => value !== null && value !== undefined && String(value) !== '');
+  const core = [
+    propertyDetailCard('نام مشتری', propertyDetailValue(c.name)),
+    c.phone ? propertyDetailCard('شماره موبایل', `<a href="tel:${safePhone(c.phone)}" style="color:var(--blue);text-decoration:none;direction:ltr;display:inline-block;">${escapeHTML(c.phone)}</a>`) : '',
+    propertyDetailCard('نوع درخواست', propertyDetailValue(request)),
+    propertyDetailCard('اولویت', propertyDetailValue(priority)),
+    propertyDetailCard('منطقه / محله', propertyDetailValue(c.area)),
+    propertyDetailCard('معرف / منبع', propertyDetailValue(c.source)),
+    propertyDetailCard('تاریخ ثبت', propertyDetailValue(c.date)),
+    c.userName ? propertyDetailCard('ثبت‌کننده', propertyDetailValue(c.userName)) : ''
+  ].join('');
+  const extra = dynEntries.map(([key,value]) => propertyDetailCard(clientDetailFallbackLabel(key), clientDetailValue(value, key))).join('');
+  const notes = c.notes ? `<div class="property-detail-section"><div class="property-detail-section-title">📝 یادداشت و نکات مهم</div><div class="property-detail-notes">${propertyDetailValue(c.notes)}</div></div>` : '';
+
+  document.getElementById('client-details-title').textContent = `🔎 جزئیات مشتری — ${c.name || 'بدون نام'}`;
+  document.getElementById('client-details-content').innerHTML = `
+    <div class="property-detail-hero"><div><div class="property-detail-main-title">${escapeHTML(c.name || 'مشتری بدون نام')}</div><div class="property-detail-subtitle">${escapeHTML(request)}${c.area ? ` · ${escapeHTML(c.area)}` : ''}</div></div><span class="badge ${c.priority === 'high' ? 'badge-red' : c.priority === 'low' ? 'badge-gray' : 'badge-gold'}">${escapeHTML(priority)}</span></div>
+    <div class="property-detail-section"><div class="property-detail-section-title">📋 اطلاعات اصلی</div><div class="property-detail-grid">${core || '<div class="property-detail-empty">اطلاعات اصلی ثبت نشده است</div>'}</div></div>
+    ${extra ? `<div class="property-detail-section"><div class="property-detail-section-title">🎯 نیازمندی‌های مشتری</div><div class="property-detail-grid">${extra}</div></div>` : ''}
+    ${notes}
+  `;
+  openModal('client-details-modal');
+}
+
 function renderClients(){
   const q = document.getElementById('client-search')?.value.toLowerCase()||'';
-  const list = state.clients.filter(c=>c.name.toLowerCase().includes(q)||(c.phone||'').includes(q));
+  const list = state.clients.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q));
   const el = document.getElementById('clients-table');
   if(!list.length){ el.innerHTML='<div class="empty-state"><div class="icon">👥</div><p>هنوز مشتری‌ای ثبت نشده</p></div>'; return; }
   const prMap = {high:'<span class="badge badge-red">🔴 فوری</span>',mid:'<span class="badge badge-gold">🟡 متوسط</span>',low:'<span class="badge badge-gray">🟢 کم</span>'};
@@ -3471,7 +3540,7 @@ function renderClients(){
     <th>نام</th><th>موبایل</th><th>درخواست</th><th>بودجه / مبلغ</th>
     <th>جزئیات</th><th>منطقه</th><th>اولویت</th><th>یادداشت</th><th>عملیات</th>
   </tr></thead><tbody>
-  ${list.map(c=>`<tr>
+  ${list.map(c=>`<tr data-client-id="${escapeHTML(String(c.id))}" style="cursor:pointer;" title="برای مشاهده جزئیات مشتری کلیک کنید">
     <td><b>${escapeHTML(c.name)}</b>${c.source?`<br><span style="font-size:10px;color:var(--text3)">${escapeHTML(c.source)}</span>`:''}</td>
     <td><a href="tel:${safePhone(c.phone)}" style="color:var(--blue)">${escapeHTML(c.phone||'—')}</a></td>
     <td><span class="badge badge-blue">${reqIcon[c.request]||''} ${escapeHTML(c.request)}</span></td>
@@ -3481,11 +3550,28 @@ function renderClients(){
     <td>${prMap[c.priority]||''}</td>
     <td style="font-size:12px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(c.notes||'—')}</td>
     <td style="display:flex;gap:6px;align-items:center">
+      <button class="btn btn-primary btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="openClientDetails(this.dataset.clientId)" title="مشاهده اطلاعات کامل مشتری">🔎 جزئیات</button>
       <button class="btn btn-sm" style="background:var(--accent);color:#000;font-size:12px;" onclick="matchProperties(${c.id})" title="تطبیق با ملک‌ها">🔍 تطبیق</button>
       <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id})">🗑</button>
     </td>
   </tr>`).join('')}
   </tbody></table>`;
+
+  // کلیک روی بخش‌های غیرعملیاتی ردیف، جزئیات مشتری را باز می‌کند؛ دکمه‌ها و لینک تماس مستقل می‌مانند.
+  el.querySelectorAll('tbody tr[data-client-id]').forEach(row => {
+    const openDetails = () => openClientDetails(row.dataset.clientId);
+    row.addEventListener('click', e => {
+      if(e.target.closest('button, a, input, select, textarea')) return;
+      openDetails();
+    });
+    row.addEventListener('keydown', e => {
+      if((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button, a, input, select, textarea')){
+        e.preventDefault();
+        openDetails();
+      }
+    });
+    row.tabIndex = 0;
+  });
 }
 
 async function deleteClient(id){
