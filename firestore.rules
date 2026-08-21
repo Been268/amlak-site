@@ -17,8 +17,24 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
     }
 
+    function isActiveAdvisor() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'advisor'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function advisorCollectionAllowed(collection) {
+      return collection == 'properties'
+        || collection == 'clients'
+        || collection == 'deals'
+        || collection == 'reminders'
+        || collection == 'followups'
+        || collection == 'priceHistory';
+    }
+
     match /users/{uid} {
-      // کاربران فقط پروفایل خودشان را می‌خوانند؛ مدیر داده‌های لازم را می‌خواند.
+      // مدیر همه پروفایل‌ها را می‌بیند؛ هر کاربر فقط پروفایل خودش را می‌خواند.
       allow read: if isSelf(uid) || isAdmin();
 
       // ثبت‌نام عمومی هرگز نمی‌تواند نقش مدیر ایجاد کند.
@@ -36,7 +52,9 @@ service cloud.firestore {
       allow delete: if isAdmin();
 
       match /{collection}/{docId} {
-        allow read, create, update, delete: if isSelf(uid) || isAdmin();
+        // مدیر به همه داده‌ها دسترسی دارد؛ مشاور فقط داده‌های عملیاتی مجاز خودش را می‌بیند.
+        allow read, create, update, delete: if isAdmin()
+          || (isSelf(uid) && isActiveAdvisor() && advisorCollectionAllowed(collection));
       }
     }
 
