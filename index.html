@@ -2669,6 +2669,56 @@ function openGallery(id){
   openModal('gallery-modal');
 }
 
+const withTimeout = (promise, ms, message) => {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(message)), ms);
+    })
+  ]).finally(() => clearTimeout(timer));
+};
+
+async function uploadPropertyImages(docId, images) {
+  if(!images.length) return;
+  const uploadedImages = [];
+  const failedImages = [];
+  const results = await Promise.allSettled(images.map(async (img) => {
+    if(img.data && img.data.startsWith('data:')){
+      try {
+        const res = await withTimeout(fetch(img.data), 8000, 'خواندن تصویر بیش از حد طول کشید');
+        const blob = await res.blob();
+        const path = `properties/${currentUser.id}/${Date.now()}_${img.name}`;
+        const storageRef = fb().ref(fb().storage, path);
+        const snap = await withTimeout(fb().uploadBytes(storageRef, blob), 10000, 'آپلود تصویر بیش از ۱۰ ثانیه طول کشید');
+        const url = await withTimeout(fb().getDownloadURL(snap.ref), 8000, 'دریافت لینک تصویر بیش از حد طول کشید');
+        return { url, name: img.name, path };
+      } catch(error) {
+        failedImages.push({ name: img.name || 'تصویر', error: error.message });
+      }
+    }
+    return img.url ? img : null;
+  }));
+  results.forEach(result => {
+    if(result.status === 'fulfilled' && result.value) uploadedImages.push(result.value);
+  });
+  if(uploadedImages.length){
+    try {
+      await withTimeout(
+        fb().updateDoc(fb().doc(fb().db, `users/${currentUser.id}/properties/${docId}`), { images: uploadedImages }),
+        10000,
+        'ثبت لینک تصاویر بیش از ۱۰ ثانیه طول کشید'
+      );
+      const saved = state.properties.find(p => String(p.id) === String(docId));
+      if(saved) saved.images = uploadedImages;
+      renderProperties();
+    } catch(error) {
+      failedImages.push({ name: 'لینک تصاویر', error: error.message });
+    }
+  }
+  if(failedImages.length) console.warn('Some images were skipped while saving the property:', failedImages);
+}
+
 async function saveProperty(){
   const title = document.getElementById('p-title').value.trim();
   if(!title){ notify('عنوان ملک را وارد کنید','var(--red)'); return; }
@@ -2693,29 +2743,15 @@ async function saveProperty(){
 
     const pricePerMeter = gVal('p-price-per-meter');
 
-    // آپلود تصاویر به Firebase Storage
-    const uploadedImages = [];
-    for(const img of currentImages){
-      if(img.data && img.data.startsWith('data:')){
-        // تبدیل base64 به blob
-        const res = await fetch(img.data);
-        const blob = await res.blob();
-        const path = `properties/${currentUser.id}/${Date.now()}_${img.name}`;
-        const storageRef = fb().ref(fb().storage, path);
-        const snap = await fb().uploadBytes(storageRef, blob);
-        const url = await fb().getDownloadURL(snap.ref);
-        uploadedImages.push({ url, name: img.name, path });
-      } else if(img.url){
-        uploadedImages.push(img); // already uploaded
-      }
-    }
+    // آپلود تصویر بعد از ذخیره رکورد و در پس‌زمینه انجام می‌شود.
+    const imagesToUpload = currentImages.slice();
 
     const propData = {
       title, type: currentPropType, status, ...priceData,
       pricePerMeter: pricePerMeter || null,
       ownerPhone: gVal('p-owner-phone'), ownerName: gVal('p-owner-name'),
       notes: gVal('p-notes'), extra,
-      images: uploadedImages,
+      images: [],
       videos: [...currentVideos],
       date: new Date().toLocaleDateString('fa-IR'),
       createdAt: fb().serverTimestamp(),
@@ -2730,7 +2766,11 @@ async function saveProperty(){
 
     const docId = String(Date.now());
     propData.id = docId;
-    await fb().setDoc(fb().doc(fb().db, `users/${currentUser.id}/properties/${docId}`), _cleanObj(propData));
+    await withTimeout(
+      fb().setDoc(fb().doc(fb().db, `users/${currentUser.id}/properties/${docId}`), _cleanObj(propData)),
+      12000,
+      'ذخیره اطلاعات بیش از ۱۲ ثانیه طول کشید'
+    );
     state.properties.unshift(propData);
 
     currentImages = []; currentVideos = [];
@@ -2746,7 +2786,8 @@ async function saveProperty(){
     closeModal('prop-modal');
     backToPropStep1();
     renderProperties(); updateCounts();
-    notify('ملک با موفقیت ذخیره شد ✅');
+    notify(imagesToUpload.length ? 'ملک ذخیره شد؛ تصاویر در پس‌زمینه بارگذاری می‌شوند' : 'ملک با موفقیت ذخیره شد ✅');
+    if(imagesToUpload.length) void uploadPropertyImages(docId, imagesToUpload);
   } catch(e){
     notify('خطا در ذخیره: ' + e.message, 'var(--red)');
     console.error(e);
