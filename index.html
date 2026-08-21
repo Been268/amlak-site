@@ -810,14 +810,14 @@
         <span class="icon">👥</span> مشتریان
         <span class="nav-badge" id="client-count">0</span>
       </button>
-      <button class="nav-item" onclick="showPage('advisors')">
+      <button class="nav-item" data-admin-only="true" onclick="showPage('advisors')">
         <span class="icon">🤝</span> مشاوران
       </button>
       <button class="nav-item" onclick="showPage('deals')">
         <span class="icon">📋</span> معاملات
       </button>
     </div>
-    <div class="nav-section" id="admin-nav-section" style="display:none;">
+    <div class="nav-section" id="admin-nav-section" data-admin-only="true" style="display:none;">
       <div class="nav-label">مدیریت سیستم</div>
       <button class="nav-item" onclick="showPage('admin')">
         <span class="icon">⚙️</span> پنل مدیر
@@ -826,7 +826,7 @@
     </div>
     <div class="nav-section">
       <div class="nav-label">ابزارها</div>
-      <button class="nav-item" onclick="showPage('telegram')">
+      <button class="nav-item" data-admin-only="true" onclick="showPage('telegram')">
         <span class="icon">📱</span> تلگرام
       </button>
       <button class="nav-item" onclick="showPage('commission')">
@@ -842,10 +842,10 @@
       <button class="nav-item" onclick="showPage('price-history')">
         <span class="icon">📈</span> تاریخچه قیمت
       </button>
-      <button class="nav-item" onclick="showPage('accounting')">
+      <button class="nav-item" data-admin-only="true" onclick="showPage('accounting')">
         <span class="icon">💳</span> حسابداری آژانس
       </button>
-      <button class="nav-item" onclick="showPage('reports')">
+      <button class="nav-item" data-admin-only="true" onclick="showPage('reports')">
         <span class="icon">📊</span> گزارش‌ها و آمار
       </button>
       <button class="nav-item" onclick="showPage('chat')">
@@ -1870,8 +1870,8 @@ async function showApp(){
   document.getElementById('sb-avatar').textContent = currentUser.fullname?.[0] || '؟';
   document.getElementById('sb-name').textContent = currentUser.fullname;
   document.getElementById('sb-role').textContent = currentUser.role === 'admin' ? '👑 مدیر سیستم' : '🤝 مشاور';
-  document.getElementById('admin-nav-section').style.display = currentUser.role === 'admin' ? 'block' : 'none';
-  updatePendingBadge();
+  applyRoleAccess();
+  if(isAdmin()) updatePendingBadge();
   // show loading indicator while Firestore loads
   document.getElementById('prop-count').textContent = '...';
   document.getElementById('client-count').textContent = '...';
@@ -2057,20 +2057,20 @@ async function loadUserState(){
     state.tgPosts    = tgPosts;
     state.reminders  = reminders;
   } else {
-    const [props, clients, deals, tgPosts, reminders, followups, priceHistory, accounting] = await Promise.all([
+    // مشاور فقط داده‌های عملیاتی مجاز خودش را می‌خواند؛ اطلاعات تلگرام و حسابداری آژانس مدیریتی هستند.
+    const [props, clients, deals, reminders, followups, priceHistory] = await Promise.all([
       loadCol('properties'), loadCol('clients'), loadCol('deals'),
-      loadCol('tgposts'), loadCol('reminders'), loadCol('followups'),
-      loadCol('priceHistory'), loadCol('accounting')
+      loadCol('reminders'), loadCol('followups'), loadCol('priceHistory')
     ]);
     state.properties  = props;
     state.clients     = clients;
     state.advisors    = [];
     state.deals       = deals;
-    state.tgPosts     = tgPosts;
+    state.tgPosts     = [];
     state.reminders   = reminders;
     state.followups   = followups;
     state.priceHistory= priceHistory;
-    state.accounting  = accounting;
+    state.accounting  = [];
   }
 }
 
@@ -2084,6 +2084,7 @@ async function save(colName, dataArray){
   const colMap = { props:'properties', clients:'clients', advisors:'advisors',
                    deals:'deals', tgposts:'tgposts', reminders:'reminders' };
   const col = colMap[colName] || colName;
+  if(!isAdmin() && !ADVISOR_ALLOWED_COLLECTIONS.has(col)) return;
   for(const item of dataArray){
     const docId = String(item.id);
     await fb().setDoc(fb().doc(fb().db, `users/${uid}/${col}/${docId}`), _cleanObj(item));
@@ -2109,6 +2110,7 @@ function safePhone(value){
 
 // save a single document to Firestore
 async function _saveDoc(col, data){
+  if(!isAdmin() && !ADVISOR_ALLOWED_COLLECTIONS.has(col)) throw new Error('این عملیات فقط برای مدیر مجاز است');
   const uid = currentUser.id;
   const docId = String(data.id || Date.now());
   data.id = docId;
@@ -2118,6 +2120,7 @@ async function _saveDoc(col, data){
 
 // delete a single document
 async function _deleteDoc(col, id){
+  if(!isAdmin() && !ADVISOR_ALLOWED_COLLECTIONS.has(col)) throw new Error('این عملیات فقط برای مدیر مجاز است');
   const uid = currentUser.id;
   await fb().deleteDoc(fb().doc(fb().db, `users/${uid}/${col}/${String(id)}`));
 }
@@ -2126,6 +2129,7 @@ async function _deleteDoc(col, id){
 //  ADMIN PANEL
 // ============================================================
 async function updatePendingBadge(){
+  if(!isAdmin()) return;
   try {
     const snap = await fb().getDocs(fb().collection(fb().db, 'users'));
     const pending = snap.docs.filter(d => d.data().status==='pending').length;
@@ -2138,6 +2142,7 @@ async function updatePendingBadge(){
 }
 
 async function renderAdminPage(){
+  if(!isAdmin()) return showPage('dashboard');
   const usersSnap = await fb().getDocs(fb().collection(fb().db, 'users'));
   const users = usersSnap.docs.map(d => ({ ...d.data(), id: d.id }));
   const advisors = users.filter(u => u.role === 'advisor');
@@ -2216,6 +2221,7 @@ async function renderAdminPage(){
 }
 
 async function approveUser(id){
+  if(!isAdmin()) return;
   try {
     await fb().updateDoc(fb().doc(fb().db, 'users', id), { status: 'active' });
     await renderAdminPage(); updatePendingBadge();
@@ -2224,6 +2230,7 @@ async function approveUser(id){
 }
 
 async function rejectUser(id){
+  if(!isAdmin()) return;
   if(!confirm('این درخواست رد و حذف شود؟')) return;
   try {
     await fb().deleteDoc(fb().doc(fb().db, 'users', id));
@@ -2233,6 +2240,7 @@ async function rejectUser(id){
 }
 
 async function disableUser(id){
+  if(!isAdmin()) return;
   try {
     await fb().updateDoc(fb().doc(fb().db, 'users', id), { status: 'disabled' });
     await renderAdminPage();
@@ -2312,8 +2320,22 @@ let state = {
   calYear: new Date().getFullYear()
 };
 
-// Navigation
+// Navigation and role access
+const ADMIN_ONLY_PAGES = new Set(['advisors','admin','telegram','accounting','reports']);
+const ADVISOR_ALLOWED_COLLECTIONS = new Set(['properties','clients','deals','reminders','followups','priceHistory']);
+function isAdmin(){ return !!currentUser && currentUser.role === 'admin'; }
+function canAccessPage(name){ return isAdmin() || !ADMIN_ONLY_PAGES.has(name); }
+function applyRoleAccess(){
+  const admin = isAdmin();
+  document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+    el.style.display = admin ? '' : 'none';
+  });
+}
 function showPage(name) {
+  if(!canAccessPage(name)){
+    console.warn('[access] blocked page for advisor:', name);
+    name = 'dashboard';
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const pageEl = document.getElementById('page-'+name);
@@ -3311,6 +3333,7 @@ async function deleteClient(id){
 // --- ADVISORS ---
 const advColors = ['#e8a838','#3fb950','#58a6ff','#bc8cff','#f85149','#79c0ff'];
 function saveAdvisor(){
+  if(!isAdmin()) return;
   const name = document.getElementById('adv-name').value.trim();
   if(!name){ notify('نام مشاور را وارد کنید','var(--red)'); return; }
   const a = {
@@ -3329,6 +3352,7 @@ function saveAdvisor(){
 }
 
 function renderAdvisors(){
+  if(!isAdmin()) return;
   const el = document.getElementById('advisor-grid');
   if(!state.advisors.length){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🤝</div><p>هنوز مشاوری ثبت نشده</p></div>'; return; }
   el.innerHTML = state.advisors.map(a=>`
@@ -3347,6 +3371,7 @@ function renderAdvisors(){
 }
 
 async function deleteAdvisor(id){
+  if(!isAdmin()) return;
   try {
     await _deleteDoc('advisors', id);
     state.advisors = state.advisors.filter(a=>a.id!==id);
@@ -4041,6 +4066,7 @@ async function saveIncome(){
 }
 
 function renderAccounting(){
+  if(!isAdmin()) return showPage('dashboard');
   const el = document.getElementById('accounting-list');
   if(!el) return;
 
@@ -4114,6 +4140,7 @@ function exportExcel(){
 //  گزارش‌ها
 // ════════════════════════════════════════════════
 function renderReports(){
+  if(!isAdmin()) return showPage('dashboard');
   // نمودار نوع ملک
   const propTypesEl = document.getElementById('chart-prop-types');
   if(propTypesEl && typeof Chart !== 'undefined'){
