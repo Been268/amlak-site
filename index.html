@@ -229,6 +229,29 @@
   .badge-gold { background: rgba(232,168,56,0.15); color: var(--accent); }
   .badge-gray { background: var(--surface3); color: var(--text2); }
 
+  /* Property details */
+  .property-detail-hero {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+    padding:14px 16px; margin-bottom:14px; border-radius:12px;
+    background:linear-gradient(135deg, rgba(232,168,56,.12), var(--surface2));
+    border:1px solid var(--border);
+  }
+  .property-detail-main-title { font-size:17px; font-weight:800; line-height:1.7; }
+  .property-detail-subtitle { color:var(--text2); font-size:12px; margin-top:4px; }
+  .property-detail-section { margin-top:14px; }
+  .property-detail-section-title { color:var(--accent); font-size:13px; font-weight:800; margin-bottom:9px; }
+  .property-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .property-detail-item { min-width:0; padding:10px 12px; border-radius:9px; background:var(--surface2); border:1px solid var(--border); }
+  .property-detail-item.property-detail-wide { grid-column:1/-1; }
+  .property-detail-label { display:block; color:var(--text3); font-size:11px; margin-bottom:4px; }
+  .property-detail-value { display:block; color:var(--text); font-size:12px; line-height:1.8; overflow-wrap:anywhere; }
+  .property-detail-notes { padding:12px; border-radius:9px; background:var(--surface2); border:1px solid var(--border); font-size:12px; line-height:2; white-space:normal; overflow-wrap:anywhere; }
+  .property-detail-media { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+  .property-detail-media img { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:9px; border:1px solid var(--border); cursor:zoom-in; transition:transform .18s, border-color .18s; }
+  .property-detail-media img:hover { transform:scale(1.02); border-color:var(--accent); }
+  .property-detail-link { display:block; padding:9px 11px; margin-bottom:7px; border-radius:8px; background:var(--surface2); color:var(--blue); font-size:12px; overflow-wrap:anywhere; }
+  .property-detail-empty { grid-column:1/-1; color:var(--text3); font-size:12px; padding:12px; }
+
   /* Forms */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -622,6 +645,11 @@
   }
 
   .modal-title { font-size: 16px !important; }
+  .property-detail-hero { align-items:flex-start; padding:12px; }
+  .property-detail-main-title { font-size:15px; }
+  .property-detail-grid { grid-template-columns:1fr !important; }
+  .property-detail-item.property-detail-wide { grid-column:auto; }
+  .property-detail-media { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .form-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
   .form-group.full { grid-column: 1 !important; }
 
@@ -1640,6 +1668,20 @@
   </div>
 </div>
 
+<!-- Property Details Modal -->
+<div class="modal-overlay" id="property-details-modal">
+  <div class="modal" style="width:860px;max-width:96vw;max-height:90vh;overflow:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+      <div class="modal-title" id="property-details-title" style="margin:0;">🔎 جزئیات ملک</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('property-details-modal')" aria-label="بستن جزئیات">✕</button>
+    </div>
+    <div id="property-details-content"></div>
+    <div class="form-actions" style="margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('property-details-modal')">بستن</button>
+    </div>
+  </div>
+</div>
+
 <!-- Client Modal -->
 <div class="modal-overlay" id="client-modal">
   <div class="modal" style="width:640px;">
@@ -2634,9 +2676,117 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// Property details viewer
+const PROPERTY_STATUS_LABELS = {
+  sale:'فروش', rent:'اجاره', mortgage:'رهن کامل', rent_mortgage:'رهن و اجاره',
+  presale:'پیش فروش', partnership:'مشارکت در ساخت', in_progress:'در حال ساخت',
+  exchange:'معاوضه', sold:'فروخته شده', rented:'اجاره رفته', done:'پروژه تمام شده'
+};
+const PROPERTY_APPROVAL_LABELS = { approved:'تایید شده', pending:'در انتظار تایید', rejected:'رد شده' };
+const PROPERTY_EXTRA_LABELS = {
+  'p-area':'متراژ (م²)','p-rooms':'تعداد اتاق','p-floor':'طبقه','p-total-floors':'تعداد کل طبقات',
+  'p-year':'سال ساخت','p-parking':'پارکینگ','p-storage':'انباری','p-elevator':'آسانسور',
+  'p-heating':'گرمایش','p-cooling':'سرمایش','p-deed':'نوع سند','p-loan':'وام','p-unit':'شماره واحد',
+  'p-direction':'جهت واحد','p-wc':'تعداد سرویس بهداشتی','p-bath':'تعداد حمام','p-balcony':'بالکن',
+  'p-terrace':'تراس','p-price-per-m':'قیمت هر متر (تومان)','p-features':'امکانات ویژه',
+  'v-area':'زیربنا (م²)','v-land':'مساحت زمین (م²)','v-rooms':'تعداد اتاق','v-floors':'تعداد طبقه',
+  'v-year':'سال ساخت','v-pool':'استخر','v-jacuzzi':'جکوزی','v-deed':'نوع سند','v-location':'موقعیت',
+  'v-heating':'گرمایش','v-cooling':'سرمایش','v-wc':'تعداد سرویس بهداشتی','v-bath':'تعداد حمام',
+  'v-parking':'تعداد پارکینگ','v-yard':'حیاط','v-garden':'باغچه / فضای سبز','v-water':'وضعیت آب',
+  'v-electric':'وضعیت برق','v-gas':'وضعیت گاز','v-direction':'جهت ملک','v-price-per-m':'قیمت هر متر (تومان)',
+  'v-features':'امکانات ویژه','l-area':'مساحت (م²)','l-width':'عرض بر (متر)','l-usage':'کاربری',
+  'l-deed':'نوع سند','l-utilities':'امکانات','l-slope':'شیب زمین','l-street-width':'عرض گذر / خیابان (متر)',
+  'l-build-status':'وضعیت ساخت و ساز','l-sewage':'فاضلاب','l-water':'وضعیت آب','l-electric':'وضعیت برق',
+  'l-gas':'وضعیت گاز','l-position':'موقعیت زمین','l-price-per-m':'قیمت هر متر (تومان)',
+  'cm-area':'متراژ (م²)','cm-type':'نوع تجاری','cm-floor':'طبقه','cm-width':'عرض بر (متر)',
+  'cm-parking':'پارکینگ','cm-deed':'نوع سند','cm-position':'موقعیت','cm-goodwill':'حق کسب و پیشه',
+  'cm-fronts':'تعداد بر','cm-storage':'انباری','cm-wc':'سرویس بهداشتی','cm-heating':'سیستم گرمایش',
+  'cm-cooling':'سیستم سرمایش','cm-water':'وضعیت آب','cm-electric':'وضعیت برق','cm-gas':'وضعیت گاز',
+  'cm-traffic':'میزان تردد','cm-commercial-pos':'موقعیت تجاری','cm-price-per-m':'قیمت هر متر (تومان)',
+  'cm-features':'امکانات ویژه','pt-land':'مساحت زمین (م²)','pt-width':'عرض بر (متر)',
+  'pt-floors':'طبقات مجاز','pt-usage':'کاربری','pt-owner-share':'سهم مالک (%)',
+  'pt-builder-share':'سهم سازنده (%)','pt-deed':'نوع سند زمین','pt-age':'قدمت بنا (سال)',
+  'pt-current-type':'نوع ملک فعلی','pt-price-per-m':'قیمت هر متر زمین (تومان)',
+  'p-address':'آدرس','p-lat':'عرض جغرافیایی','p-lng':'طول جغرافیایی'
+};
+
+function propertyDetailCard(label, value, extraClass=''){
+  if(value === null || value === undefined || value === '') return '';
+  return `<div class="property-detail-item ${extraClass}">
+    <span class="property-detail-label">${escapeHTML(label)}</span>
+    <strong class="property-detail-value">${value}</strong>
+  </div>`;
+}
+
+function propertyDetailValue(value, key=''){
+  if(value === null || value === undefined || value === '') return '';
+  if(Array.isArray(value)) return value.filter(Boolean).map(v => escapeHTML(String(v))).join('، ');
+  if(typeof value === 'object'){
+    return Object.entries(value).map(([k,v]) => `${escapeHTML(k)}: ${escapeHTML(String(v))}`).join('، ');
+  }
+  const text = String(value);
+  if(/price|rent|mortgage/i.test(key) && /^[-+]?\d+(\.\d+)?$/.test(text)) return `${fmt(text)} تومان`;
+  return escapeHTML(text).replace(/\n/g, '<br>');
+}
+
+function propertyDetailFallbackLabel(key){
+  return PROPERTY_EXTRA_LABELS[key] || key.replace(/^(p|v|l|cm|pt)-/, '').replace(/-/g, ' ');
+}
+
+function openPropertyLightbox(id, index){
+  const p = state.properties.find(x => String(x.id) === String(id));
+  if(!p) return;
+  const images = (p.images || []).map(img => typeof img === 'string' ? img : (img.url || img.data)).filter(Boolean);
+  if(!images.length) return;
+  lightboxImages = images;
+  lightboxIndex = Math.max(0, Math.min(Number(index) || 0, images.length - 1));
+  openLightbox();
+}
+
+function openPropertyDetails(id){
+  const p = state.properties.find(x => String(x.id) === String(id));
+  if(!p) return;
+
+  const title = p.title || 'ملک بدون عنوان';
+  const status = PROPERTY_STATUS_LABELS[p.status] || p.status || 'نامشخص';
+  const approval = PROPERTY_APPROVAL_LABELS[p.approvalStatus || 'approved'] || p.approvalStatus || 'نامشخص';
+  const address = p.address || (p.extra && (p.extra['p-address'] || p.extra.address || p.extra.location || p.extra['p-location'])) || '';
+  const images = (p.images || []).map(img => typeof img === 'string' ? {src:img,name:''} : {src:img.url || img.data,name:img.name || ''}).filter(img => img.src);
+  const extraEntries = Object.entries(p.extra || {}).filter(([,value]) => value !== null && value !== undefined && String(value) !== '');
+
+  const core = [
+    propertyDetailCard('نوع ملک', propertyDetailValue(p.type)),
+    propertyDetailCard('وضعیت', propertyDetailValue(status)),
+    propertyDetailCard('تایید مدیر', propertyDetailValue(approval)),
+    propertyDetailCard('تاریخ ثبت', propertyDetailValue(p.date)),
+    propertyDetailCard('ثبت‌کننده', propertyDetailValue(p.userName)),
+    propertyDetailCard('نام مالک', propertyDetailValue(p.ownerName)),
+    p.ownerPhone ? propertyDetailCard('شماره تماس مالک', `<a href="tel:${safePhone(p.ownerPhone)}" style="color:var(--blue);text-decoration:none;direction:ltr;display:inline-block;">${escapeHTML(p.ownerPhone)}</a>`) : '',
+    address ? propertyDetailCard('آدرس', propertyDetailValue(address), 'property-detail-wide') : '',
+    p.price ? propertyDetailCard('قیمت فروش', `${fmt(p.price)} تومان`) : '',
+    p.mortgage ? propertyDetailCard('مبلغ رهن', `${fmt(p.mortgage)} تومان`) : '',
+    p.rent ? propertyDetailCard('اجاره ماهیانه', `${fmt(p.rent)} تومان`) : '',
+    p.pricePerMeter ? propertyDetailCard('قیمت هر متر', `${fmt(p.pricePerMeter)} تومان`) : ''
+  ].join('');
+
+  const extra = extraEntries.map(([key,value]) => propertyDetailCard(propertyDetailFallbackLabel(key), propertyDetailValue(value, key))).join('');
+  const notes = p.notes ? `<div class="property-detail-section"><div class="property-detail-section-title">📝 توضیحات</div><div class="property-detail-notes">${propertyDetailValue(p.notes)}</div></div>` : '';
+  const media = images.length ? `<div class="property-detail-section"><div class="property-detail-section-title">📸 تصاویر (${images.length})</div><div class="property-detail-media">${images.map((img,index) => `<img src="${safeURL(img.src)}" alt="${escapeHTML(img.name || title)}" title="برای بزرگ‌نمایی کلیک کنید" data-property-id="${escapeHTML(String(p.id))}" data-image-index="${index}" onclick="openPropertyLightbox(this.dataset.propertyId, this.dataset.imageIndex)">`).join('')}</div></div>` : '';
+  const videos = (p.videos || []).filter(Boolean).length ? `<div class="property-detail-section"><div class="property-detail-section-title">🎬 ویدیوها</div>${p.videos.filter(Boolean).map(url => `<a href="${safeURL(url)}" target="_blank" rel="noopener noreferrer" class="property-detail-link">${escapeHTML(url)}</a>`).join('')}</div>` : '';
+
+  document.getElementById('property-details-title').textContent = `🔎 جزئیات — ${title}`;
+  document.getElementById('property-details-content').innerHTML = `
+    <div class="property-detail-hero"><div><div class="property-detail-main-title">${escapeHTML(title)}</div><div class="property-detail-subtitle">${escapeHTML(status)}${p.type ? ` · ${escapeHTML(p.type)}` : ''}</div></div><span class="badge ${approval === 'تایید شده' ? 'badge-green' : approval === 'رد شده' ? 'badge-gray' : 'badge-gold'}">${escapeHTML(approval)}</span></div>
+    <div class="property-detail-section"><div class="property-detail-section-title">📋 اطلاعات اصلی</div><div class="property-detail-grid">${core || '<div class="property-detail-empty">اطلاعات اصلی ثبت نشده است</div>'}</div></div>
+    ${extra ? `<div class="property-detail-section"><div class="property-detail-section-title">⚙️ مشخصات تکمیلی</div><div class="property-detail-grid">${extra}</div></div>` : ''}
+    ${notes}${media}${videos}
+  `;
+  openModal('property-details-modal');
+}
+
 // Gallery viewer
 function openGallery(id){
-  const p = state.properties.find(x => x.id === id);
+  const p = state.properties.find(x => String(x.id) === String(id));
   if(!p) return;
   document.getElementById('gallery-modal-title').textContent = `📸 گالری — ${p.title}`;
 
@@ -2904,7 +3054,7 @@ function renderProperties(){
       pricePerMeter: p.pricePerMeter||'', area: (p.extra&&(p.extra.area||p.extra.land))||'',
       notes: p.notes||'', ownerPhone: p.ownerPhone||''
     };
-    return `<tr>
+    return `<tr data-property-id="${escapeHTML(String(p.id))}" style="cursor:pointer;" title="برای مشاهده جزئیات کلیک کنید">
     <td style="width:52px;">
       ${(p.images&&p.images.length)
         ? `<img src="${safeURL(p.images[0].url||p.images[0].data)}" alt="تصویر ملک" style="width:46px;height:46px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border);" onclick="openGallery(${Number(p.id)||0})">`
@@ -2944,6 +3094,7 @@ function renderProperties(){
     <td>${escapeHTML(p.ownerName||'—')}</td>
     <td><a href="tel:${safePhone(p.ownerPhone)}" style="color:var(--blue)">${escapeHTML(p.ownerPhone||'—')}</a></td>
     <td style="display:flex;gap:6px;align-items:center;">
+      <button class="btn btn-primary btn-sm" data-property-id="${escapeHTML(String(p.id))}" onclick="openPropertyDetails(this.dataset.propertyId)" title="مشاهده اطلاعات کامل فایل">🔎 جزئیات</button>
       ${(p.images&&p.images.length)||(p.videos&&p.videos.length)
         ? `<button class="btn btn-ghost btn-sm" onclick="openGallery(${p.id})" title="مشاهده گالری">📸</button>`
         : ''}
@@ -2968,6 +3119,22 @@ function renderProperties(){
   </tr>`;
   }).join('')}
   </tbody></table>`;
+
+  // کلیک روی عنوان یا بخش‌های خالی ردیف، جزئیات همان فایل را باز می‌کند؛ دکمه‌ها و لینک‌ها عملکرد مستقل خود را حفظ می‌کنند.
+  el.querySelectorAll('tbody tr[data-property-id]').forEach(row => {
+    const openDetails = () => openPropertyDetails(row.dataset.propertyId);
+    row.addEventListener('click', e => {
+      if(e.target.closest('button, a, img, input, select, textarea')) return;
+      openDetails();
+    });
+    row.addEventListener('keydown', e => {
+      if((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button, a, input, select, textarea')){
+        e.preventDefault();
+        openDetails();
+      }
+    });
+    row.tabIndex = 0;
+  });
 }
 
 // تغییر وضعیت تایید توسط مدیر
