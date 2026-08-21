@@ -493,11 +493,12 @@
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 60px;
+  height: calc(60px + env(safe-area-inset-bottom));
+  min-height: 60px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   z-index: 1000;
-  padding: 0 4px;
+  padding: 0 4px env(safe-area-inset-bottom);
   align-items: center;
   justify-content: space-around;
   gap: 2px;
@@ -731,27 +732,27 @@
 
 <!-- Bottom Navigation موبایل -->
 <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
-  <button class="mob-nav-item active" onclick="showSection('dashboard');setMobActive(this)" data-section="dashboard">
+  <button class="mob-nav-item active" onclick="showPage('dashboard')" data-section="dashboard" aria-label="داشبورد">
     <span class="mob-icon">🏠</span>
     <span class="mob-label">داشبورد</span>
   </button>
-  <button class="mob-nav-item" onclick="showSection('properties');setMobActive(this)" data-section="properties">
+  <button class="mob-nav-item" onclick="showPage('properties')" data-section="properties" aria-label="املاک">
     <span class="mob-icon">🏢</span>
     <span class="mob-label">املاک</span>
   </button>
-  <button class="mob-nav-item" onclick="showSection('clients');setMobActive(this)" data-section="clients">
+  <button class="mob-nav-item" onclick="showPage('clients')" data-section="clients" aria-label="مشتریان">
     <span class="mob-icon">👥</span>
     <span class="mob-label">مشتریان</span>
   </button>
-  <button class="mob-nav-item" onclick="showSection('deals');setMobActive(this)" data-section="deals">
+  <button class="mob-nav-item" onclick="showPage('deals')" data-section="deals" aria-label="معاملات">
     <span class="mob-icon">🤝</span>
     <span class="mob-label">معاملات</span>
   </button>
-  <button class="mob-nav-item" onclick="showPage('followups');setMobActive(this)" data-section="followups">
+  <button class="mob-nav-item" onclick="showPage('followups')" data-section="followups" aria-label="پیگیری مشتریان">
     <span class="mob-icon">📞</span>
     <span class="mob-label">پیگیری</span>
   </button>
-  <button class="mob-nav-item" onclick="toggleMobileMenu()" id="mob-more-btn">
+  <button class="mob-nav-item" onclick="toggleMobileMenu()" id="mob-more-btn" aria-label="بیشتر">
     <span class="mob-icon">⋯</span>
     <span class="mob-label">بیشتر</span>
   </button>
@@ -2344,7 +2345,9 @@ function showPage(name) {
     accounting:'حسابداری آژانس', reports:'گزارش‌ها و آمار', chat:'چت داخلی'
   };
   document.getElementById('page-title').textContent = titles[name] || name;
-  event?.currentTarget?.classList.add('active');
+  syncMobNav(name);
+  const activeNav = document.querySelector(`.nav-item[onclick*="showPage('${name}')"]`);
+  if (activeNav) activeNav.classList.add('active');
   if(name==='calendar') renderCalendar();
   if(name==='dashboard') renderDashboard();
   if(name==='admin') renderAdminPage();
