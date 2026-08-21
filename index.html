@@ -792,19 +792,19 @@
 
     <!-- login form -->
     <div id="auth-login-form" class="auth-form">
-      <input type="text" id="login-username" placeholder="ایمیل" type="email">
-      <input type="password" id="login-password" placeholder="رمز عبور">
+      <input type="email" id="login-username" placeholder="ایمیل" autocomplete="email" required>
+      <input type="password" id="login-password" placeholder="رمز عبور" autocomplete="current-password" required>
       <div id="login-error" style="color:var(--red);font-size:12px;text-align:center;display:none;"></div>
       <button class="auth-btn" onclick="doLogin()">ورود به سیستم</button>
     </div>
 
     <!-- register form -->
     <div id="auth-register-form" class="auth-form" style="display:none;">
-      <input type="text" id="reg-fullname" placeholder="نام و نام خانوادگی">
-      <input type="text" id="reg-username" placeholder="ایمیل شما" type="email">
-      <input type="text" id="reg-phone" placeholder="شماره موبایل">
-      <input type="password" id="reg-password" placeholder="رمز عبور">
-      <input type="password" id="reg-password2" placeholder="تکرار رمز عبور">
+      <input type="text" id="reg-fullname" placeholder="نام و نام خانوادگی" autocomplete="name" required>
+      <input type="email" id="reg-username" placeholder="ایمیل شما" autocomplete="email" required>
+      <input type="tel" id="reg-phone" placeholder="شماره موبایل" autocomplete="tel" inputmode="tel">
+      <input type="password" id="reg-password" placeholder="رمز عبور" autocomplete="new-password" minlength="6" required>
+      <input type="password" id="reg-password2" placeholder="تکرار رمز عبور" autocomplete="new-password" minlength="6" required>
       <div id="reg-error" style="color:var(--red);font-size:12px;text-align:center;display:none;"></div>
       <button class="auth-btn" onclick="doRegister()">ارسال درخواست ثبت‌نام</button>
     </div>
@@ -1935,7 +1935,7 @@ async function doLogin(){
       'auth/too-many-requests':'تعداد تلاش زیاد است، کمی صبر کنید',
       'auth/invalid-credential': 'ایمیل یا رمز اشتباه است',
     };
-    showLoginError(msgs[e.code] || 'خطا: ' + e.message);
+    showLoginError(msgs[e.code] || 'ورود انجام نشد. لطفاً تنظیمات دسترسی حساب را بررسی کنید.');
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = 'ورود'; }
   }
@@ -1963,32 +1963,26 @@ async function doRegister(){
   try {
     const cred = await fb().createUserWithEmailAndPassword(fb().auth, email, pass);
     const uid = cred.user.uid;
-    // check if first user ever → admin
-    const adminSnap = await fb().getDocs(fb().collection(fb().db, 'users'));
-    const isFirst = adminSnap.empty;
+    // نقش مدیر هرگز در سمت کلاینت تعیین نمی‌شود؛ bootstrap مدیر باید از پنل امن/Firebase Admin انجام شود.
     await fb().setDoc(fb().doc(fb().db, 'users', uid), {
       fullname, email, phone,
-      role: isFirst ? 'admin' : 'advisor',
-      status: isFirst ? 'active' : 'pending',
+      role: 'advisor',
+      status: 'pending',
       joinDate: new Date().toLocaleDateString('fa-IR'),
       createdAt: fb().serverTimestamp()
     });
-    if(isFirst){
-      // first user is admin → log them in immediately (onAuthStateChanged fires)
-    } else {
-      await fb().signOut(fb().auth);
-      document.getElementById('auth-login-form').style.display   = 'none';
-      document.getElementById('auth-register-form').style.display= 'none';
-      document.getElementById('auth-tabs').style.display         = 'none';
-      document.getElementById('auth-pending-box').style.display  = 'block';
-    }
+    await fb().signOut(fb().auth);
+    document.getElementById('auth-login-form').style.display   = 'none';
+    document.getElementById('auth-register-form').style.display= 'none';
+    document.getElementById('auth-tabs').style.display         = 'none';
+    document.getElementById('auth-pending-box').style.display  = 'block';
   } catch(e) {
     const msgs = {
       'auth/email-already-in-use': 'این ایمیل قبلاً ثبت شده',
       'auth/invalid-email':        'ایمیل معتبر نیست',
       'auth/weak-password':        'رمز عبور ضعیف است',
     };
-    showRegError(msgs[e.code] || 'خطا: ' + e.message);
+    showRegError(msgs[e.code] || 'ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.');
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = 'ثبت‌نام'; }
   }
@@ -2136,6 +2130,18 @@ async function save(colName, dataArray){
 // helper: remove undefined values from objects (Firestore rejects them)
 function _cleanObj(obj){
   return JSON.parse(JSON.stringify(obj, (k,v) => v === undefined ? null : v));
+}
+
+// همه داده‌های ذخیره‌شده یا واردشده توسط کاربر باید قبل از درج در HTML escape شوند.
+function escapeHTML(value){
+  return String(value ?? '').replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
+}
+function safeURL(value){
+  const url = String(value ?? '').trim();
+  return /^(https?:|data:image\/)/i.test(url) ? escapeHTML(url) : '';
+}
+function safePhone(value){
+  return escapeHTML(String(value ?? '').replace(/[^0-9+()\\-\\s]/g, ''));
 }
 
 // save a single document to Firestore
@@ -2879,21 +2885,21 @@ function renderProperties(){
     return `<tr>
     <td style="width:52px;">
       ${(p.images&&p.images.length)
-        ? `<img src="${p.images[0].url||p.images[0].data}" style="width:46px;height:46px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border);" onclick="openGallery(${p.id})">`
+        ? `<img src="${safeURL(p.images[0].url||p.images[0].data)}" alt="تصویر ملک" style="width:46px;height:46px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border);" onclick="openGallery(${Number(p.id)||0})">`
         : `<div style="width:46px;height:46px;background:var(--surface3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text3);">🏠</div>`
       }
     </td>
     <td>
-      <b>${p.title}</b>
-      ${p.address ? `<br><span style="font-size:10px;color:var(--text3);">📍 ${p.address}</span>` : ''}
+      <b>${escapeHTML(p.title)}</b>
+      ${p.address ? `<br><span style="font-size:10px;color:var(--text3);">📍 ${escapeHTML(p.address)}</span>` : ''}
       ${(p.images&&p.images.length)||(p.videos&&p.videos.length) ? `<br><span style="font-size:10px;color:var(--text3);">
         ${p.images&&p.images.length?`📷 ${p.images.length}`:''}
         ${p.videos&&p.videos.length?` 🎬 ${p.videos.length}`:''}
       </span>` : ''}
-      ${p.userName ? `<br><span style="font-size:10px;color:var(--text3);">👤 ${p.userName}</span>` : ''}
+      ${p.userName ? `<br><span style="font-size:10px;color:var(--text3);">👤 ${escapeHTML(p.userName)}</span>` : ''}
     </td>
-    <td>${p.type}</td>
-    <td>${p.extra&&p.extra.area?p.extra.area+' م²':(p.extra&&p.extra.land?p.extra.land+' م²':'—')}</td>
+    <td>${escapeHTML(p.type)}</td>
+    <td>${p.extra&&p.extra.area?escapeHTML(p.extra.area)+' م²':(p.extra&&p.extra.land?escapeHTML(p.extra.land)+' م²':'—')}</td>
     <td style="color:var(--accent)">${
       p.status==='mortgage' ? (p.mortgage?'رهن: '+fmt(p.mortgage)+' ت':'—') :
       (p.status==='rent'||p.status==='rent_mortgage') ?
@@ -2913,8 +2919,8 @@ function renderProperties(){
           <button class="btn btn-sm" style="background:var(--surface3);color:var(--text2);font-size:10px;padding:3px 8px;" onclick="setApproval(${p.id},'pending')">↩ برگردان به انتظار</button>
         </div>` : ''}
     </td>
-    <td>${p.ownerName||'—'}</td>
-    <td><a href="tel:${p.ownerPhone}" style="color:var(--blue)">${p.ownerPhone||'—'}</a></td>
+    <td>${escapeHTML(p.ownerName||'—')}</td>
+    <td><a href="tel:${safePhone(p.ownerPhone)}" style="color:var(--blue)">${escapeHTML(p.ownerPhone||'—')}</a></td>
     <td style="display:flex;gap:6px;align-items:center;">
       ${(p.images&&p.images.length)||(p.videos&&p.videos.length)
         ? `<button class="btn btn-ghost btn-sm" onclick="openGallery(${p.id})" title="مشاهده گالری">📸</button>`
@@ -2926,10 +2932,10 @@ function renderProperties(){
     </td>
     <td style="display:flex;flex-direction:column;gap:4px;min-width:120px;">
       ${approval==='approved' ? `
-        <button class="btn btn-sm" style="background:#00ab6b;color:#fff;font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick='postToDivar(${JSON.stringify(adData)})'>
+        <button class="btn btn-sm" style="background:#00ab6b;color:#fff;font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick="postToDivarById(${Number(p.id)||0})">
           🟢 دیوار
         </button>
-        <button class="btn btn-sm" style="background:#7c3aed;color:#fff;font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick='postToSheypoor(${JSON.stringify(adData)})'>
+        <button class="btn btn-sm" style="background:#7c3aed;color:#fff;font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick="postToSheypoorById(${Number(p.id)||0})">
           🟣 شیپور
         </button>
         <button class="btn btn-sm" style="background:var(--surface3);color:var(--text);font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick='generateContract(${p.id})'>
@@ -2980,6 +2986,25 @@ function buildAdText(p){
   lines.push('', '— ثبت شده در سامانه املاک شاخص');
 
   return lines.join('\n');
+}
+
+function getAdDataById(id){
+  const p = state.properties.find(item => String(item.id) === String(id));
+  if(!p) return null;
+  return {
+    title: p.title, type: p.type, status: p.status,
+    price: p.price||'', mortgage: p.mortgage||'', rent: p.rent||'',
+    pricePerMeter: p.pricePerMeter||'', area: (p.extra&&(p.extra.area||p.extra.land))||'',
+    notes: p.notes||'', ownerPhone: p.ownerPhone||''
+  };
+}
+function postToDivarById(id){
+  const data = getAdDataById(id);
+  if(data) postToDivar(data);
+}
+function postToSheypoorById(id){
+  const data = getAdDataById(id);
+  if(data) postToSheypoor(data);
 }
 
 // کپی متن آگهی و باز کردن دیوار
@@ -3182,14 +3207,20 @@ function updateClientFields() {
 async function saveClient(){
   const name = document.getElementById('c-name').value.trim();
   if(!name){ notify('نام مشتری را وارد کنید','var(--red)'); return; }
+  const dynFields = {};
+  document.querySelectorAll('#c-dynamic-fields input, #c-dynamic-fields select, #c-dynamic-fields textarea').forEach(el => {
+    if(el.id) dynFields[el.id.replace(/^c-/, '')] = el.value;
+  });
   const c = {
     id: String(Date.now()), name,
     phone:    gVal('c-phone'),
     request:  gVal('c-request'),
     budget:   gVal('c-budget'),
     area:     gVal('c-area'),
+    source:   gVal('c-source'),
     priority: gVal('c-priority'),
     notes:    gVal('c-notes'),
+    dynFields,
     date: new Date().toLocaleDateString('fa-IR'),
     createdAt: fb().serverTimestamp(),
     userId: currentUser.id
@@ -3252,14 +3283,14 @@ function renderClients(){
     <th>جزئیات</th><th>منطقه</th><th>اولویت</th><th>یادداشت</th><th>عملیات</th>
   </tr></thead><tbody>
   ${list.map(c=>`<tr>
-    <td><b>${c.name}</b>${c.source?`<br><span style="font-size:10px;color:var(--text3)">${c.source}</span>`:''}</td>
-    <td><a href="tel:${c.phone}" style="color:var(--blue)">${c.phone||'—'}</a></td>
-    <td><span class="badge badge-blue">${reqIcon[c.request]||''} ${c.request}</span></td>
-    <td style="color:var(--green);font-size:12px;">${getBudgetLabel(c)}</td>
-    <td style="font-size:12px;color:var(--text2)">${getDetails(c)}</td>
-    <td>${c.area||'—'}</td>
+    <td><b>${escapeHTML(c.name)}</b>${c.source?`<br><span style="font-size:10px;color:var(--text3)">${escapeHTML(c.source)}</span>`:''}</td>
+    <td><a href="tel:${safePhone(c.phone)}" style="color:var(--blue)">${escapeHTML(c.phone||'—')}</a></td>
+    <td><span class="badge badge-blue">${reqIcon[c.request]||''} ${escapeHTML(c.request)}</span></td>
+    <td style="color:var(--green);font-size:12px;">${escapeHTML(getBudgetLabel(c))}</td>
+    <td style="font-size:12px;color:var(--text2)">${escapeHTML(getDetails(c))}</td>
+    <td>${escapeHTML(c.area||'—')}</td>
     <td>${prMap[c.priority]||''}</td>
-    <td style="font-size:12px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.notes||'—'}</td>
+    <td style="font-size:12px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(c.notes||'—')}</td>
     <td style="display:flex;gap:6px;align-items:center">
       <button class="btn btn-sm" style="background:var(--accent);color:#000;font-size:12px;" onclick="matchProperties(${c.id})" title="تطبیق با ملک‌ها">🔍 تطبیق</button>
       <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id})">🗑</button>
@@ -3400,10 +3431,10 @@ function renderTgPosts(){
   el.innerHTML = `<table><thead><tr><th>#</th><th>عنوان</th><th>اطلاعات</th><th>وضعیت</th><th>تاریخ</th><th>عملیات</th></tr></thead><tbody>
   ${state.tgPosts.map((p,i)=>`<tr>
     <td>${i+1}</td>
-    <td><b>${p.title}</b>${p.url?`<br><a href="${p.url}" target="_blank" style="font-size:11px;color:var(--blue)">🔗 لینک</a>`:''}</td>
-    <td style="font-size:12px;color:var(--text2);max-width:150px">${p.info||'—'}</td>
-    <td><span class="badge ${fMap[p.follow]||'badge-gray'}">${fLabel[p.follow]||p.follow}</span></td>
-    <td style="color:var(--text2)">${p.date}</td>
+    <td><b>${escapeHTML(p.title)}</b>${p.url?`<br><a href="${safeURL(p.url)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--blue)">🔗 لینک</a>`:''}</td>
+    <td style="font-size:12px;color:var(--text2);max-width:150px">${escapeHTML(p.info||'—')}</td>
+    <td><span class="badge ${fMap[p.follow]||'badge-gray'}">${escapeHTML(fLabel[p.follow]||p.follow)}</span></td>
+    <td style="color:var(--text2)">${escapeHTML(p.date)}</td>
     <td style="display:flex;gap:6px;">
       <select onchange="updateTgFollow(${p.id}, this.value)" style="font-size:11px;padding:4px 6px;">
         <option value="new" ${p.follow==='new'?'selected':''}>باید زنگ بزنم</option>
@@ -3764,11 +3795,21 @@ _auth.onAuthStateChanged(async function(fbUser) {
           return;
         }
         currentUser = Object.assign({}, profile, { id: fbUser.uid, email: fbUser.email });
-        showApp();
+        await showApp();
+      } else {
+        await _auth.signOut();
+        showAuthScreen();
+        switchAuthTab('login');
+        showLoginError('پروفایل کاربر پیدا نشد؛ با مدیر سیستم تماس بگیرید.');
       }
     } catch(e) {
       console.error('Auth state error:', e);
+      await _auth.signOut();
       showAuthScreen();
+      switchAuthTab('login');
+      showLoginError(e.code === 'permission-denied'
+        ? 'دسترسی پروفایل بسته است؛ Rules فایربیس را بررسی کنید.'
+        : 'خطا در بارگذاری پروفایل؛ لطفاً دوباره تلاش کنید.');
     }
   } else {
     currentUser = null;
@@ -4139,9 +4180,9 @@ function renderChatContacts(){
   }
   el.innerHTML = users.map(function(u){
     var bg = (activeChatUser===u.id) ? 'rgba(232,168,56,.15)' : 'none';
-    return '<button data-uid="'+u.id+'" data-uname="'+u.name+'" onclick="openChatFromBtn(this)" style="width:100%;padding:10px 12px;background:'+bg+';border:none;border-radius:8px;color:var(--text);font-family:Vazirmatn,sans-serif;font-size:12px;text-align:right;cursor:pointer;display:flex;align-items:center;gap:8px;margin-bottom:2px;">' +
-      '<span style="width:32px;height:32px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">'+(u.name[0]||'؟')+'</span>'+
-      '<span>'+u.name+'</span></button>';
+    return '<button data-uid="'+escapeHTML(u.id)+'" data-uname="'+escapeHTML(u.name)+'" onclick="openChatFromBtn(this)" style="width:100%;padding:10px 12px;background:'+bg+';border:none;border-radius:8px;color:var(--text);font-family:Vazirmatn,sans-serif;font-size:12px;text-align:right;cursor:pointer;display:flex;align-items:center;gap:8px;margin-bottom:2px;">' +
+      '<span style="width:32px;height:32px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">'+escapeHTML(u.name[0]||'؟')+'</span>'+
+      '<span>'+escapeHTML(u.name)+'</span></button>';
   }).join('');
 }
 
@@ -4151,7 +4192,7 @@ function openChatFromBtn(btn){
 
 function openChat(userId, userName){
   activeChatUser = userId;
-  document.getElementById('chat-header').innerHTML = '<div class="card-title">'+userName+'</div>';
+  document.getElementById('chat-header').innerHTML = '<div class="card-title">'+escapeHTML(userName)+'</div>';
   renderChatMessages();
   renderChatContacts();
 }
@@ -4193,8 +4234,8 @@ function renderChatMessages(){
     const isMine = m.from === currentUser.id;
     return '<div style="display:flex;flex-direction:'+(isMine?'row-reverse':'row')+';gap:8px;align-items:flex-end;">' +
       '<div style="max-width:70%;background:'+(isMine?'rgba(232,168,56,.2)':'var(--surface2)')+';border-radius:'+(isMine?'12px 12px 0 12px':'12px 12px 12px 0')+';padding:10px 14px;">' +
-      (!isMine?'<div style="font-size:10px;color:var(--accent);margin-bottom:4px;">'+m.fromName+'</div>':'')+
-      '<div style="font-size:13px;">'+m.text+'</div>' +
+      (!isMine?'<div style="font-size:10px;color:var(--accent);margin-bottom:4px;">'+escapeHTML(m.fromName)+'</div>':'')+
+      '<div style="font-size:13px;">'+escapeHTML(m.text)+'</div>' +
       '<div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:'+(isMine?'left':'right')+';">'+m.time+'</div>' +
       '</div></div>';
   }).join('');
