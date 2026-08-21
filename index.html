@@ -514,20 +514,6 @@
 .mob-nav-item .mob-label { font-size: 9px; font-weight: 600; }
 .mob-nav-item.active { color: var(--accent); background: rgba(232,168,56,.1); }
 
-/* دکمه همبرگر */
-.mobile-menu-btn {
-  display: none;
-  position: fixed;
-  top: 10px; right: 10px;
-  z-index: 1001;
-  background: var(--accent);
-  border: none; border-radius: 10px;
-  width: 42px; height: 42px;
-  font-size: 18px; cursor: pointer; color: #000;
-  box-shadow: 0 2px 12px rgba(0,0,0,.4);
-  align-items: center; justify-content: center;
-}
-
 .sidebar-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,.6); z-index: 999;
@@ -545,8 +531,6 @@
 /* ── MOBILE (≤768px) ── */
 @media (max-width: 768px) {
 
-  /* دکمه همبرگر */
-  .mobile-menu-btn { display: flex; }
 
   /* sidebar drawer */
   .sidebar {
@@ -726,8 +710,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<!-- دکمه موبایل منو -->
-<button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="باز کردن منو" aria-expanded="false">☰</button>
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileMenu()"></div>
 
 <!-- Bottom Navigation موبایل -->
@@ -752,7 +734,7 @@
     <span class="mob-icon">📞</span>
     <span class="mob-label">پیگیری</span>
   </button>
-  <button class="mob-nav-item" onclick="toggleMobileMenu()" id="mob-more-btn" aria-label="بیشتر">
+  <button class="mob-nav-item" onclick="toggleMobileMenu()" id="mob-more-btn" aria-label="بیشتر" aria-expanded="false">
     <span class="mob-icon">⋯</span>
     <span class="mob-label">بیشتر</span>
   </button>
@@ -3839,28 +3821,26 @@ _auth.onAuthStateChanged(async function(fbUser) {
 function toggleMobileMenu() {
   var sidebar = document.querySelector('.sidebar');
   var overlay = document.getElementById('sidebar-overlay');
-  var btn = document.getElementById('mobile-menu-btn');
+  var btn = document.getElementById('mob-more-btn');
   var isOpen = sidebar.classList.contains('mob-open');
   if (isOpen) {
     sidebar.classList.remove('mob-open');
     overlay.classList.remove('mob-open');
-    btn.textContent = '☰';
-    btn.setAttribute('aria-expanded', 'false');
+    if(btn){ btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('active'); }
   } else {
     sidebar.classList.add('mob-open');
     overlay.classList.add('mob-open');
-    btn.textContent = '✕';
-    btn.setAttribute('aria-expanded', 'true');
+    if(btn){ btn.setAttribute('aria-expanded', 'true'); btn.classList.add('active'); }
   }
 }
 
 function closeMobileMenu() {
   var sidebar = document.querySelector('.sidebar');
   var overlay = document.getElementById('sidebar-overlay');
-  var btn = document.getElementById('mobile-menu-btn');
+  var btn = document.getElementById('mob-more-btn');
   sidebar.classList.remove('mob-open');
   overlay.classList.remove('mob-open');
-  btn.textContent = '☰';
+  if(btn){ btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('active'); }
 }
 
 // Bottom nav active state
