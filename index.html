@@ -1466,11 +1466,23 @@
           <label>نام مالک</label>
           <input type="text" id="p-owner-name" placeholder="نام مالک">
         </div>
-        <div class="form-group">
-          <label>شماره تماس مالک</label>
-          <input type="text" id="p-owner-phone" placeholder="09...">
+          <div class="form-group">
+            <label>شماره تماس مالک</label>
+            <input type="text" id="p-owner-phone" placeholder="09...">
+          </div>
+          <div class="form-group full">
+            <label>آدرس دقیق ملک</label>
+            <input type="text" id="p-address" placeholder="استان، شهر، محله، خیابان و پلاک">
+          </div>
+          <div class="form-group">
+            <label>عرض جغرافیایی (اختیاری)</label>
+            <input type="number" id="p-lat" step="any" placeholder="مثال: 35.7219">
+          </div>
+          <div class="form-group">
+            <label>طول جغرافیایی (اختیاری)</label>
+            <input type="number" id="p-lng" step="any" placeholder="مثال: 51.3347">
+          </div>
         </div>
-      </div>
 
       <!-- آپارتمان -->
       <div id="fields-apartment" class="prop-extra-fields" style="display:none;">
@@ -2177,9 +2189,16 @@ function _cleanObj(obj){
 function escapeHTML(value){
   return String(value ?? '').replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
 }
-function safeURL(value){
+function safeRawURL(value){
   const url = String(value ?? '').trim();
-  return /^(https?:|data:image\/)/i.test(url) ? escapeHTML(url) : '';
+  return /^(https?:|data:image\/)/i.test(url) ? url : '';
+}
+function safeURL(value){
+  return escapeHTML(safeRawURL(value));
+}
+function sameId(a, b){ return String(a ?? '') === String(b ?? ''); }
+function safeScriptJSON(value){
+  return JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 }
 function safePhone(value){
   return escapeHTML(String(value ?? '').replace(/[^0-9+()\\-\\s]/g, ''));
@@ -2456,6 +2475,18 @@ function notify(msg, color='var(--green)') {
   console.info('[site]', msg);
 }
 
+// تبدیل اعداد فارسی و عربی به عدد استاندارد برای فیلتر و محاسبات
+function normalizeDigits(value){
+  return String(value ?? '')
+    .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+}
+function toNumber(value){
+  const normalized = normalizeDigits(value).replace(/[٬,،\s]/g, '');
+  const result = Number.parseFloat(normalized);
+  return Number.isFinite(result) ? result : 0;
+}
+
 // Format number
 function fmt(n) {
   if(!n) return '۰';
@@ -2654,13 +2685,15 @@ function addVideoLink(){
 function renderVideoLinks(){
   const el = document.getElementById('video-links-list');
   if(!currentVideos.length){ el.innerHTML=''; return; }
-  el.innerHTML = currentVideos.map((url, i) => `
+  el.innerHTML = currentVideos.map((url, i) => {
+    const safe = safeURL(url);
+    return `
     <div class="video-link-item">
       <span style="font-size:16px;">🎬</span>
-      <a href="${url}" target="_blank">${url}</a>
-      <button class="btn btn-danger btn-sm" onclick="removeVideo(${i})">✕</button>
-    </div>
-  `).join('');
+      ${safe ? `<a href="${safe}" target="_blank" rel="noopener noreferrer">${escapeHTML(url)}</a>` : `<span style="color:var(--red);">لینک نامعتبر</span>`}
+      <button class="btn btn-danger btn-sm" data-video-index="${i}" onclick="removeVideo(Number(this.dataset.videoIndex))">✕</button>
+    </div>`;
+  }).join('');
 }
 
 function removeVideo(i){
@@ -2825,8 +2858,8 @@ function openGallery(id){
   if(!p) return;
   document.getElementById('gallery-modal-title').textContent = `📸 گالری — ${p.title}`;
 
-  const imgs = (p.images || []).map(img => typeof img === 'string' ? {data:img,name:''} : img);
-  const vids = p.videos || [];
+  const imgs = (p.images || []).map(img => typeof img === 'string' ? {data:img,name:''} : {data:img.data || img.url || '',name:img.name || ''}).map(img => ({...img, data:safeRawURL(img.data)})).filter(img => img.data);
+  const vids = (p.videos || []).map(safeRawURL).filter(Boolean);
 
   const imgEl = document.getElementById('gallery-images');
   const noImg = document.getElementById('gallery-no-img');
@@ -2835,7 +2868,7 @@ function openGallery(id){
     lightboxImages = imgs.map(x => x.data);
     imgEl.innerHTML = imgs.map((img, i) => `
       <div class="gallery-thumb-wrap">
-        <img class="gallery-thumb" src="${img.data}" onclick="lightboxImages=${JSON.stringify(imgs.map(x=>x.data))};lightboxIndex=${i};openLightbox()">
+        <img class="gallery-thumb" src="${safeURL(img.data)}" onclick="lightboxImages=${JSON.stringify(imgs.map(x=>x.data))};lightboxIndex=${i};openLightbox()">
         ${i===0 ? '<div class="gallery-cover-badge">کاور</div>' : ''}
       </div>
     `).join('');
@@ -2851,7 +2884,7 @@ function openGallery(id){
     vidEl.innerHTML = vids.map(url => `
       <div class="video-link-item">
         <span style="font-size:16px;">🎬</span>
-        <a href="${url}" target="_blank">${url}</a>
+        <a href="${safeURL(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(url)}</a>
       </div>
     `).join('');
   } else {
@@ -2933,7 +2966,7 @@ async function saveProperty(){
       }
     });
 
-    const pricePerMeter = gVal('p-price-per-meter');
+    const pricePerMeter = ['p-price-per-meter','p-price-per-m','v-price-per-m','l-price-per-m','cm-price-per-m','pt-price-per-m'].map(gVal).find(Boolean) || '';
 
     // آپلود تصویر بعد از ذخیره رکورد و در پس‌زمینه انجام می‌شود.
     const imagesToUpload = currentImages.slice();
@@ -2950,8 +2983,8 @@ async function saveProperty(){
       userId: currentUser.id,
       userName: currentUser.fullname || '',
       address: gVal('p-address'),
-      lat: parseFloat(document.getElementById('p-lat')?.value) || null,
-      lng: parseFloat(document.getElementById('p-lng')?.value) || null,
+      lat: toNumber(document.getElementById('p-lat')?.value) || null,
+      lng: toNumber(document.getElementById('p-lng')?.value) || null,
       // وضعیت تایید: ادمین خودکار تایید می‌شود، مشاور نیاز به تایید دارد
       approvalStatus: (currentUser.role === 'admin') ? 'approved' : 'pending'
     };
@@ -3006,14 +3039,15 @@ function resetFilters(){
 }
 
 function getPropPrice(p){
-  if(p.status==='mortgage') return parseFloat(p.mortgage)||0;
-  if(p.status==='rent'||p.status==='rent_mortgage') return parseFloat(p.mortgage)||0;
-  return parseFloat(p.price)||0;
+  if(p.status==='mortgage') return toNumber(p.mortgage);
+  if(p.status==='rent'||p.status==='rent_mortgage') return toNumber(p.mortgage);
+  return toNumber(p.price);
 }
 
 function getPropArea(p){
-  const a = p.extra && (p.extra.area || p.extra.land);
-  return parseFloat(a)||0;
+  const extra = p.extra || {};
+  const a = extra.area || extra.land || extra['p-area'] || extra['v-area'] || extra['l-area'] || extra['v-land'] || extra['pt-land'] || extra['cm-area'] || extra['o-area'];
+  return toNumber(a);
 }
 
 function renderProperties(){
@@ -3021,13 +3055,13 @@ function renderProperties(){
   const fType     = document.getElementById('filter-type')?.value || '';
   const fStatus   = document.getElementById('filter-status')?.value || '';
   const fApproval = document.getElementById('filter-approval')?.value || '';
-  const fPriceMin = parseFloat(document.getElementById('filter-price-min')?.value) || 0;
-  const fPriceMax = parseFloat(document.getElementById('filter-price-max')?.value) || 0;
-  const fAreaMin  = parseFloat(document.getElementById('filter-area-min')?.value) || 0;
-  const fAreaMax  = parseFloat(document.getElementById('filter-area-max')?.value) || 0;
+  const fPriceMin = toNumber(document.getElementById('filter-price-min')?.value);
+  const fPriceMax = toNumber(document.getElementById('filter-price-max')?.value);
+  const fAreaMin  = toNumber(document.getElementById('filter-area-min')?.value);
+  const fAreaMax  = toNumber(document.getElementById('filter-area-max')?.value);
   const fAreaName = document.getElementById('filter-area-name')?.value.toLowerCase().trim() || '';
 
-  let list = state.properties.filter(p => p.title.toLowerCase().includes(q)||(p.ownerName||'').toLowerCase().includes(q));
+  let list = state.properties.filter(p => (p.title||'').toLowerCase().includes(q)||(p.ownerName||'').toLowerCase().includes(q));
 
   if(fType)   list = list.filter(p => p.type === fType);
   if(fStatus) list = list.filter(p => p.status === fStatus);
@@ -3037,7 +3071,7 @@ function renderProperties(){
   if(fAreaMin) list = list.filter(p => getPropArea(p) >= fAreaMin);
   if(fAreaMax) list = list.filter(p => getPropArea(p) > 0 && getPropArea(p) <= fAreaMax);
   if(fAreaName) list = list.filter(p => {
-    const addr = ((p.extra && (p.extra.address||p.extra['p-address']||p.extra.location||p.extra['p-location'])) || '') + ' ' + (p.notes||'');
+    const addr = (p.address || (p.extra && (p.extra.address||p.extra['p-address']||p.extra.location||p.extra['p-location'])) || '') + ' ' + (p.notes||'');
     return addr.toLowerCase().includes(fAreaName);
   });
 
@@ -3083,16 +3117,17 @@ function renderProperties(){
     // قفل حذف: مشاور نمی‌تواند فایل تایید شده را حذف کند
     const canDelete = isAdmin || approval !== 'approved';
     const adImagesB64 = (p.images||[]).map(im=>im.url||im.data).filter(Boolean);
+    const firstImageSource = p.images && p.images.length ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0].url || p.images[0].data || '')) : '';
     const adData = {
       title: p.title, type: p.type, status: p.status,
       price: p.price||'', mortgage: p.mortgage||'', rent: p.rent||'',
-      pricePerMeter: p.pricePerMeter||'', area: (p.extra&&(p.extra.area||p.extra.land))||'',
+      pricePerMeter: p.pricePerMeter||'', area: getPropArea(p) || '',
       notes: p.notes||'', ownerPhone: p.ownerPhone||''
     };
     return `<tr data-property-id="${escapeHTML(String(p.id))}" style="cursor:pointer;" title="برای مشاهده جزئیات کلیک کنید">
     <td style="width:52px;">
       ${(p.images&&p.images.length)
-        ? `<img src="${safeURL(p.images[0].url||p.images[0].data)}" alt="تصویر ملک" style="width:46px;height:46px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border);" onclick="openGallery(${Number(p.id)||0})">`
+        ? `<img src="${safeURL(firstImageSource)}" alt="تصویر ملک" style="width:46px;height:46px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border);" data-property-id="${escapeHTML(String(p.id))}" onclick="openGallery(this.dataset.propertyId)">`
         : `<div style="width:46px;height:46px;background:var(--surface3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text3);">🏠</div>`
       }
     </td>
@@ -3118,12 +3153,12 @@ function renderProperties(){
       ${approvalMap[approval]||approval}
       ${isAdmin && approval==='pending' ? `
         <div style="display:flex;gap:4px;margin-top:4px;">
-          <button class="btn btn-sm" style="background:#0b4a2e;color:#4ade80;font-size:11px;padding:3px 8px;" onclick="setApproval(${p.id},'approved')">✅ تایید</button>
-          <button class="btn btn-sm" style="background:#4a0b0b;color:#f87171;font-size:11px;padding:3px 8px;" onclick="setApproval(${p.id},'rejected')">❌ رد</button>
+          <button class="btn btn-sm" style="background:#0b4a2e;color:#4ade80;font-size:11px;padding:3px 8px;" data-property-id="${escapeHTML(String(p.id))}" onclick="setApproval(this.dataset.propertyId,'approved')">✅ تایید</button>
+          <button class="btn btn-sm" style="background:#4a0b0b;color:#f87171;font-size:11px;padding:3px 8px;" data-property-id="${escapeHTML(String(p.id))}" onclick="setApproval(this.dataset.propertyId,'rejected')">❌ رد</button>
         </div>` : ''}
       ${isAdmin && approval==='approved' ? `
         <div style="margin-top:4px;">
-          <button class="btn btn-sm" style="background:var(--surface3);color:var(--text2);font-size:10px;padding:3px 8px;" onclick="setApproval(${p.id},'pending')">↩ برگردان به انتظار</button>
+          <button class="btn btn-sm" style="background:var(--surface3);color:var(--text2);font-size:10px;padding:3px 8px;" data-property-id="${escapeHTML(String(p.id))}" onclick="setApproval(this.dataset.propertyId,'pending')">↩ برگردان به انتظار</button>
         </div>` : ''}
     </td>
     <td>${escapeHTML(p.ownerName||'—')}</td>
@@ -3131,22 +3166,22 @@ function renderProperties(){
     <td style="display:flex;gap:6px;align-items:center;">
       <button class="btn btn-primary btn-sm" data-property-id="${escapeHTML(String(p.id))}" onclick="openPropertyDetails(this.dataset.propertyId)" title="مشاهده اطلاعات کامل فایل">🔎 جزئیات</button>
       ${(p.images&&p.images.length)||(p.videos&&p.videos.length)
-        ? `<button class="btn btn-ghost btn-sm" onclick="openGallery(${p.id})" title="مشاهده گالری">📸</button>`
+        ? `<button class="btn btn-ghost btn-sm" data-property-id="${escapeHTML(String(p.id))}" onclick="openGallery(this.dataset.propertyId)" title="مشاهده گالری">📸</button>`
         : ''}
       ${canDelete
-        ? `<button class="btn btn-danger btn-sm" onclick="deleteProp(${p.id})" title="حذف">🗑</button>`
+        ? `<button class="btn btn-danger btn-sm" data-property-id="${escapeHTML(String(p.id))}" onclick="deleteProp(this.dataset.propertyId)" title="حذف">🗑</button>`
         : `<button class="btn btn-ghost btn-sm" disabled title="فایل تایید شده - قابل حذف توسط مشاور نیست" style="opacity:.4;cursor:not-allowed;">🔒</button>`
       }
     </td>
     <td style="display:flex;flex-direction:column;gap:4px;min-width:120px;">
       ${approval==='approved' ? `
-        <button class="btn btn-sm" style="background:#00ab6b;color:#fff;font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick="postToDivarById(${Number(p.id)||0})">
+        <button class="btn btn-sm" data-property-id="${escapeHTML(String(p.id))}" style="background:#00ab6b;color:#fff;font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick="postToDivarById(this.dataset.propertyId)">
           🟢 دیوار
         </button>
-        <button class="btn btn-sm" style="background:#7c3aed;color:#fff;font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick="postToSheypoorById(${Number(p.id)||0})">
+        <button class="btn btn-sm" data-property-id="${escapeHTML(String(p.id))}" style="background:#7c3aed;color:#fff;font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick="postToSheypoorById(this.dataset.propertyId)">
           🟣 شیپور
         </button>
-        <button class="btn btn-sm" style="background:var(--surface3);color:var(--text);font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick='generateContract(${p.id})'>
+        <button class="btn btn-sm" data-property-id="${escapeHTML(String(p.id))}" style="background:var(--surface3);color:var(--text);font-size:11px;padding:5px 8px;display:flex;align-items:center;gap:4px;justify-content:center;" onclick="generateContract(this.dataset.propertyId)">
           📄 قرارداد
         </button>
       ` : `<span style="font-size:10px;color:var(--text3);text-align:center;">پس از تایید فعال می‌شود</span>`}
@@ -3175,7 +3210,7 @@ function renderProperties(){
 // تغییر وضعیت تایید توسط مدیر
 async function setApproval(id, newStatus){
   try {
-    const prop = state.properties.find(p=>p.id===id);
+    const prop = state.properties.find(p=>sameId(p.id, id));
     if(!prop) return;
     prop.approvalStatus = newStatus;
     await fb().setDoc(fb().doc(fb().db, `users/${prop.userId}/properties/${prop.id}`), _cleanObj(prop));
@@ -3218,7 +3253,7 @@ function getAdDataById(id){
   return {
     title: p.title, type: p.type, status: p.status,
     price: p.price||'', mortgage: p.mortgage||'', rent: p.rent||'',
-    pricePerMeter: p.pricePerMeter||'', area: (p.extra&&(p.extra.area||p.extra.land))||'',
+    pricePerMeter: p.pricePerMeter||'', area: getPropArea(p) || '',
     notes: p.notes||'', ownerPhone: p.ownerPhone||''
   };
 }
@@ -3259,7 +3294,7 @@ function postToSheypoor(p){
 
 async function deleteProp(id){
   try {
-    const prop = state.properties.find(p=>p.id===id);
+    const prop = state.properties.find(p=>sameId(p.id, id));
     // محافظت: اگر فایل تایید شده و کاربر ادمین نیست، اجازه حذف ندارد
     const approval = prop ? (prop.approvalStatus || 'approved') : 'approved';
     const isAdmin = currentUser && currentUser.role === 'admin';
@@ -3277,7 +3312,7 @@ async function deleteProp(id){
       }
     }
     await _deleteDoc('properties', id);
-    state.properties = state.properties.filter(p=>p.id!==id);
+    state.properties = state.properties.filter(p=>!sameId(p.id, id));
     renderProperties(); updateCounts();
     notify('ملک حذف شد','var(--red)');
   } catch(e){ notify('خطا در حذف','var(--red)'); }
@@ -3670,7 +3705,7 @@ async function toggleClientReminder(id, enabled){
 async function deleteClient(id){
   try {
     await _deleteDoc('clients', id);
-    state.clients = state.clients.filter(c=>c.id!==id);
+    state.clients = state.clients.filter(c=>!sameId(c.id, id));
     renderClients(); updateCounts();
     notify('مشتری حذف شد','var(--red)');
   } catch(e){ notify('خطا در حذف','var(--red)'); }
@@ -3703,14 +3738,14 @@ function renderAdvisors(){
   if(!state.advisors.length){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🤝</div><p>هنوز مشاوری ثبت نشده</p></div>'; return; }
   el.innerHTML = state.advisors.map(a=>`
     <div class="advisor-card">
-      <div class="advisor-avatar" style="background:${a.color}">${a.name[0]}</div>
-      <div class="advisor-name">${a.name}</div>
-      <div style="font-size:12px;color:var(--text2)">${a.specialty} | ${a.phone||'—'}</div>
-      <div class="advisor-deals">${a.deals}</div>
-      <div class="advisor-commission">معامله | پورسانت ${a.commission}%</div>
+      <div class="advisor-avatar" style="background:${escapeHTML(a.color || 'var(--accent)')}">${escapeHTML((a.name||'؟')[0])}</div>
+      <div class="advisor-name">${escapeHTML(a.name||'بدون نام')}</div>
+      <div style="font-size:12px;color:var(--text2)">${escapeHTML(a.specialty||'—')} | ${escapeHTML(a.phone||'—')}</div>
+      <div class="advisor-deals">${escapeHTML(a.deals ?? 0)}</div>
+      <div class="advisor-commission">معامله | پورسانت ${escapeHTML(a.commission||0)}%</div>
       <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
-        <a href="tel:${a.phone}" class="btn btn-ghost btn-sm">📞 تماس</a>
-        <button class="btn btn-danger btn-sm" onclick="deleteAdvisor(${a.id})">🗑</button>
+        <a href="tel:${safePhone(a.phone)}" class="btn btn-ghost btn-sm">📞 تماس</a>
+        <button class="btn btn-danger btn-sm" data-advisor-id="${escapeHTML(String(a.id))}" onclick="deleteAdvisor(this.dataset.advisorId)">🗑</button>
       </div>
     </div>
   `).join('');
@@ -3720,7 +3755,7 @@ async function deleteAdvisor(id){
   if(!isAdmin()) return;
   try {
     await _deleteDoc('advisors', id);
-    state.advisors = state.advisors.filter(a=>a.id!==id);
+    state.advisors = state.advisors.filter(a=>!sameId(a.id, id));
     renderAdvisors();
     notify('مشاور حذف شد','var(--red)');
   } catch(e){ notify('خطا در حذف','var(--red)'); }
@@ -3751,19 +3786,19 @@ function renderDeals(){
   if(!state.deals.length){ el.innerHTML='<div class="empty-state"><div class="icon">📋</div><p>هنوز معامله‌ای ثبت نشده</p></div>'; return; }
   el.innerHTML = `<table><thead><tr><th>عنوان</th><th>نوع</th><th>قیمت نهایی</th><th>کمیسیون</th><th>مشاور</th><th>تاریخ</th><th>عملیات</th></tr></thead><tbody>
   ${state.deals.map(d=>`<tr>
-    <td><b>${d.title}</b></td>
-    <td><span class="badge badge-blue">${d.type}</span></td>
+    <td><b>${escapeHTML(d.title||'بدون عنوان')}</b></td>
+    <td><span class="badge badge-blue">${escapeHTML(d.type||'—')}</span></td>
     <td style="color:var(--accent)">${d.price?fmt(d.price)+' ت':'—'}</td>
     <td style="color:var(--green)">${d.commission?fmt(d.commission)+' ت':'—'}</td>
-    <td>${d.advisor||'—'}</td>
-    <td style="color:var(--text2)">${d.date||'—'}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteDeal(${d.id})">🗑</button></td>
+    <td>${escapeHTML(d.advisor||'—')}</td>
+    <td style="color:var(--text2)">${escapeHTML(d.date||'—')}</td>
+    <td><button class="btn btn-danger btn-sm" data-deal-id="${escapeHTML(String(d.id))}" onclick="deleteDeal(this.dataset.dealId)">🗑</button></td>
   </tr>`).join('')}
   </tbody></table>`;
 }
 
 function deleteDeal(id){
-  state.deals = state.deals.filter(d=>d.id!==id);
+  state.deals = state.deals.filter(d=>!sameId(d.id, id));
   save('deals', state.deals);
   renderDeals(); updateCounts();
   notify('معامله حذف شد','var(--red)');
@@ -3807,24 +3842,24 @@ function renderTgPosts(){
     <td><span class="badge ${fMap[p.follow]||'badge-gray'}">${escapeHTML(fLabel[p.follow]||p.follow)}</span></td>
     <td style="color:var(--text2)">${escapeHTML(p.date)}</td>
     <td style="display:flex;gap:6px;">
-      <select onchange="updateTgFollow(${p.id}, this.value)" style="font-size:11px;padding:4px 6px;">
+        <select data-post-id="${escapeHTML(String(p.id))}" onchange="updateTgFollow(this.dataset.postId, this.value)" style="font-size:11px;padding:4px 6px;">
         <option value="new" ${p.follow==='new'?'selected':''}>باید زنگ بزنم</option>
         <option value="called" ${p.follow==='called'?'selected':''}>زنگ زدم</option>
         <option value="done" ${p.follow==='done'?'selected':''}>انجام شد</option>
       </select>
-      <button class="btn btn-danger btn-sm" onclick="deleteTgPost(${p.id})">🗑</button>
+      <button class="btn btn-danger btn-sm" data-post-id="${escapeHTML(String(p.id))}" onclick="deleteTgPost(this.dataset.postId)">🗑</button>
     </td>
   </tr>`).join('')}
   </tbody></table>`;
 }
 
 function updateTgFollow(id, val){
-  const p = state.tgPosts.find(x=>x.id===id);
+  const p = state.tgPosts.find(x=>sameId(x.id, id));
   if(p){ p.follow=val; save('tgposts',state.tgPosts); renderTgPosts(); }
 }
 
 function deleteTgPost(id){
-  state.tgPosts = state.tgPosts.filter(p=>p.id!==id);
+  state.tgPosts = state.tgPosts.filter(p=>!sameId(p.id, id));
   save('tgposts', state.tgPosts);
   renderTgPosts();
   notify('حذف شد','var(--red)');
@@ -3832,12 +3867,12 @@ function deleteTgPost(id){
 
 // --- COMMISSION CALCULATOR ---
 function calcCommission(){
-  const price = parseFloat(document.getElementById('calc-price').value)||0;
+  const price = toNumber(document.getElementById('calc-price').value);
   if(!price){ document.getElementById('calc-result').style.display='none'; return; }
-  const pct1 = parseFloat(document.getElementById('calc-pct1').value)||0;
-  const pct2 = parseFloat(document.getElementById('calc-pct2').value)||0;
-  const advPct = parseFloat(document.getElementById('calc-advisor-pct').value)||0;
-  const tax = parseFloat(document.getElementById('calc-tax').value)||0;
+  const pct1 = toNumber(document.getElementById('calc-pct1').value);
+  const pct2 = toNumber(document.getElementById('calc-pct2').value);
+  const advPct = toNumber(document.getElementById('calc-advisor-pct').value);
+  const tax = toNumber(document.getElementById('calc-tax').value);
   const seller = price * pct1 / 100;
   const buyer = price * pct2 / 100;
   const total = seller + buyer;
@@ -3916,16 +3951,16 @@ function renderRemindersList(){
     <div class="reminder-item">
       <div class="reminder-dot" style="background:${colors[r.type]||'var(--accent)'}"></div>
       <div class="reminder-info">
-        <div class="reminder-title">${typeMap[r.type]||'📌'} ${r.title}</div>
-        <div class="reminder-time">${r.date||'—'} ${r.time||''}</div>
+        <div class="reminder-title">${typeMap[r.type]||'📌'} ${escapeHTML(r.title||'بدون عنوان')}</div>
+        <div class="reminder-time">${escapeHTML(r.date||'—')} ${escapeHTML(r.time||'')}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteReminder(${r.id})">✕</button>
+      <button class="btn btn-danger btn-sm" data-reminder-id="${escapeHTML(String(r.id))}" onclick="deleteReminder(this.dataset.reminderId)">✕</button>
     </div>
   `).join('');
 }
 
 function deleteReminder(id){
-  state.reminders = state.reminders.filter(r=>r.id!==id);
+  state.reminders = state.reminders.filter(r=>!sameId(r.id, id));
   save('reminders', state.reminders);
   renderCalendar();
   notify('یادآوری حذف شد','var(--red)');
@@ -3962,7 +3997,7 @@ function renderDashboard(){
   document.getElementById('dash-props').textContent = state.properties.length;
   document.getElementById('dash-clients').textContent = state.clients.length;
   document.getElementById('dash-deals').textContent = state.deals.length;
-  const totalComm = state.deals.reduce((s,d)=>s+(parseFloat(d.commission)||0),0);
+  const totalComm = state.deals.reduce((s,d)=>s+toNumber(d.commission),0);
   document.getElementById('dash-commission').textContent = totalComm>0?fmt(Math.round(totalComm/1000000))+'M':'۰';
 
   // Latest properties
@@ -3984,14 +4019,14 @@ function renderDashboard(){
   };
     propEl.innerHTML=`<table><thead><tr><th>عنوان</th><th>نوع</th><th>قیمت</th><th>وضعیت</th></tr></thead><tbody>
     ${state.properties.slice(0,5).map(p=>`<tr>
-      <td><b>${p.title}</b></td><td>${p.type}</td>
+      <td><b>${escapeHTML(p.title||'بدون عنوان')}</b></td><td>${escapeHTML(p.type||'—')}</td>
       <td style="color:var(--accent)">${
       p.status==='mortgage' ? (p.mortgage?'رهن: '+fmt(p.mortgage)+' ت':'—') :
       (p.status==='rent'||p.status==='rent_mortgage') ?
         ((p.mortgage?'رهن: '+fmt(p.mortgage)+' ت':'')+(p.mortgage&&p.rent?' | ':'')+(p.rent?'اجاره: '+fmt(p.rent)+' ت':'')) || '—' :
       (p.price?fmt(p.price)+' ت':'—')
     }</td>
-      <td>${statusMap[p.status]||p.status}</td>
+      <td>${statusMap[p.status]||escapeHTML(p.status||'—')}</td>
     </tr>`).join('')}</tbody></table>`;
   }
 
@@ -4008,8 +4043,8 @@ function renderDashboard(){
       <div class="reminder-item">
         <div class="reminder-dot" style="background:var(--accent)"></div>
         <div class="reminder-info">
-          <div class="reminder-title">${typeMap[r.type]||'📌'} ${r.title}</div>
-          <div class="reminder-time">${r.time||'امروز'}</div>
+          <div class="reminder-title">${typeMap[r.type]||'📌'} ${escapeHTML(r.title||'بدون عنوان')}</div>
+          <div class="reminder-time">${escapeHTML(r.time||'امروز')}</div>
         </div>
       </div>
     `).join('');
@@ -4035,18 +4070,20 @@ function matchProperties(clientId) {
   var modal = document.getElementById('match-modal');
   modal.style.display = 'flex';
 
-  var budget = client.budget ? fmt(client.budget) + ' ت' : 'نامشخص';
-  var area = client.area ? client.area + ' متر' : 'نامشخص';
+  var budgetValue = toNumber(client.budget);
+  var areaValue = toNumber(client.area);
+  var budget = budgetValue ? fmt(budgetValue) + ' ت' : 'نامشخص';
+  var area = areaValue ? fmt(areaValue) + ' متر' : 'نامشخص';
   document.getElementById('match-client-info').innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-    '<div>👤 <b>' + client.name + '</b></div>' +
-    '<div>📞 ' + (client.phone || '—') + '</div>' +
-    '<div>🏠 نوع: ' + (client.request || 'هر نوع') + '</div>' +
+    '<div>👤 <b>' + escapeHTML(client.name||'بدون نام') + '</b></div>' +
+    '<div>📞 ' + escapeHTML(client.phone || '—') + '</div>' +
+    '<div>🏠 نوع: ' + escapeHTML(client.request || 'هر نوع') + '</div>' +
     '<div>💰 بودجه: ' + budget + '</div>' +
     '<div>📐 متراژ: ' + area + '</div>' +
-    '<div>⭐ اولویت: ' + (client.priority || '—') + '</div>' +
+    '<div>⭐ اولویت: ' + escapeHTML(client.priority || '—') + '</div>' +
     '</div>' +
-    (client.notes ? '<div style="margin-top:8px;opacity:.7;">📝 ' + client.notes + '</div>' : '');
+    (client.notes ? '<div style="margin-top:8px;opacity:.7;">📝 ' + escapeHTML(client.notes) + '</div>' : '');
 
   document.getElementById('match-loading').style.display = 'block';
   document.getElementById('match-results').innerHTML = '';
@@ -4062,8 +4099,8 @@ function matchProperties(clientId) {
   }
 
   // الگوریتم امتیازدهی هوشمند
-  var clientBudget = parseFloat((client.budget||'').toString().replace(/[^0-9.]/g,'')) || 0;
-  var clientArea   = parseFloat((client.area||'').toString().replace(/[^0-9.]/g,'')) || 0;
+  var clientBudget = toNumber(client.budget);
+  var clientArea   = toNumber(client.area);
   var clientType   = (client.request || '').toLowerCase();
 
   var scored = props.map(function(p) {
@@ -4079,7 +4116,7 @@ function matchProperties(clientId) {
     }
 
     // ۲. تطبیق بودجه (۴۰ امتیاز)
-    var propPrice = parseFloat((p.price || p.mortgage || '0').toString().replace(/[^0-9.]/g,'')) || 0;
+    var propPrice = toNumber(p.price || p.mortgage || '0');
     if (clientBudget > 0 && propPrice > 0) {
       var ratio = propPrice / clientBudget;
       if (ratio <= 1.0) { score += 40; reasons.push('قیمت در محدوده بودجه'); }
@@ -4091,7 +4128,7 @@ function matchProperties(clientId) {
     }
 
     // ۳. تطبیق متراژ (۲۰ امتیاز)
-    var propArea = parseFloat(((p.extra && (p.extra['p-area']||p.extra.area)) || '0').toString().replace(/[^0-9.]/g,'')) || 0;
+    var propArea = getPropArea(p);
     if (clientArea > 0 && propArea > 0) {
       var areaRatio = propArea / clientArea;
       if (areaRatio >= 0.9 && areaRatio <= 1.2) { score += 20; reasons.push('متراژ مناسب'); }
@@ -4131,15 +4168,15 @@ function matchProperties(clientId) {
     var p = item.prop;
     var scoreColor = item.score >= 70 ? '#4caf50' : item.score >= 50 ? 'var(--accent)' : '#888';
     var priceStr = p.price ? fmt(p.price)+' ت' : p.mortgage ? 'رهن: '+fmt(p.mortgage)+' ت' : '—';
-    var areaStr = (p.extra && (p.extra['p-area']||p.extra.area)) ? (p.extra['p-area']||p.extra.area)+' متر' : '—';
+    var areaStr = getPropArea(p) ? fmt(getPropArea(p))+' متر' : '—';
     html += '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;">' +
       '<div style="min-width:52px;text-align:center;">' +
       '<div style="font-size:22px;font-weight:700;color:' + scoreColor + ';">' + item.score + '</div>' +
       '<div style="font-size:10px;opacity:.6;">از ۱۰۰</div></div>' +
       '<div style="flex:1;">' +
-      '<div style="font-weight:600;margin-bottom:4px;">' + p.title + '</div>' +
-      '<div style="font-size:12px;opacity:.7;margin-bottom:6px;">' + p.type + ' | ' + priceStr + ' | ' + areaStr + '</div>' +
-      '<div style="font-size:12px;color:' + scoreColor + ';">✓ ' + item.reason + '</div>' +
+      '<div style="font-weight:600;margin-bottom:4px;">' + escapeHTML(p.title||'بدون عنوان') + '</div>' +
+      '<div style="font-size:12px;opacity:.7;margin-bottom:6px;">' + escapeHTML(p.type||'—') + ' | ' + escapeHTML(priceStr) + ' | ' + escapeHTML(areaStr) + '</div>' +
+      '<div style="font-size:12px;color:' + scoreColor + ';">✓ ' + escapeHTML(item.reason) + '</div>' +
       '</div></div>';
   });
 
@@ -4294,7 +4331,7 @@ function renderFollowups(){
   const sel = document.getElementById('fu-client');
   if(sel && state.clients.length){
     sel.innerHTML = '<option value="">انتخاب مشتری...</option>' +
-      state.clients.map(c => '<option value="'+c.id+'">'+c.name+'</option>').join('');
+      state.clients.map(c => '<option value="'+escapeHTML(String(c.id))+'">'+escapeHTML(c.name||'بدون نام')+'</option>').join('');
   }
 
   if(!state.followups.length){
@@ -4326,11 +4363,11 @@ function renderFollowups(){
 function renderFollowupCard(f, typeLabel, resultLabel, resultColor){
   return '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);">' +
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
-    '<div><b style="font-size:13px;">'+f.clientName+'</b> &nbsp;<span style="font-size:11px;color:var(--text3);">'+f.date+'</span></div>' +
-    '<span style="font-size:11px;color:'+(resultColor[f.result]||'#888')+';">'+((resultLabel[f.result])||f.result)+'</span>' +
+    '<div><b style="font-size:13px;">'+escapeHTML(f.clientName||'مشتری بدون نام')+'</b> &nbsp;<span style="font-size:11px;color:var(--text3);">'+escapeHTML(f.date||'—')+'</span></div>' +
+    '<span style="font-size:11px;color:'+(resultColor[f.result]||'#888')+';">'+escapeHTML((resultLabel[f.result])||f.result||'نامشخص')+'</span>' +
     '</div>' +
-    '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">'+(typeLabel[f.type]||f.type)+' &nbsp;|&nbsp; '+(f.notes||'—')+'</div>' +
-    (f.nextDate ? '<div style="font-size:11px;color:var(--accent);margin-top:4px;">📅 پیگیری بعدی: '+f.nextDate+(f.nextTime?' ساعت '+f.nextTime:'')+'</div>' : '') +
+    '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">'+escapeHTML((typeLabel[f.type]||f.type||'پیگیری'))+' &nbsp;|&nbsp; '+escapeHTML(f.notes||'—')+'</div>' +
+    (f.nextDate ? '<div style="font-size:11px;color:var(--accent);margin-top:4px;">📅 پیگیری بعدی: '+escapeHTML(f.nextDate)+(f.nextTime?' ساعت '+escapeHTML(f.nextTime):'')+'</div>' : '') +
     '</div>';
 }
 
@@ -4370,7 +4407,7 @@ function renderPriceHistory(){
   // پر کردن select ملک‌ها
   const sel = document.getElementById('ph-prop-select');
   if(sel){
-    const opts = state.properties.map(p => '<option value="'+p.id+'">'+p.title+'</option>').join('');
+    const opts = state.properties.map(p => '<option value="'+escapeHTML(String(p.id))+'">'+escapeHTML(p.title||'بدون عنوان')+'</option>').join('');
     sel.innerHTML = '<option value="">همه ملک‌ها</option>' + opts;
   }
 
@@ -4386,11 +4423,11 @@ function renderPriceHistory(){
     list.map(r => {
       const up = r.diff > 0;
       return '<tr>' +
-        '<td><b>'+r.propTitle+'</b></td>' +
+        '<td><b>'+escapeHTML(r.propTitle||'بدون عنوان')+'</b></td>' +
         '<td style="color:var(--text2);">'+fmt(r.oldPrice)+' ت</td>' +
         '<td style="color:var(--accent);">'+fmt(r.newPrice)+' ت</td>' +
         '<td style="color:'+(up?'#4ade80':'var(--red)')+';">'+(up?'▲ ':'▼ ')+fmt(Math.abs(r.diff))+' ت</td>' +
-        '<td>'+r.date+'</td>' +
+        '<td>'+escapeHTML(r.date||'—')+'</td>' +
       '</tr>';
     }).join('') +
   '</tbody></table>';
@@ -4400,7 +4437,7 @@ function renderPriceHistory(){
 //  حسابداری آژانس
 // ════════════════════════════════════════════════
 async function saveIncome(){
-  const amount = parseFloat(document.getElementById('inc-amount').value) || 0;
+  const amount = toNumber(document.getElementById('inc-amount').value);
   const title = document.getElementById('inc-title').value.trim();
   if(!amount || !title){ notify('مبلغ و عنوان الزامی است','var(--red)'); return; }
   const tx = {
@@ -4433,7 +4470,7 @@ function renderAccounting(){
   const sel = document.getElementById('inc-advisor');
   if(sel){
     sel.innerHTML = '<option value="">آژانس</option>' +
-      state.advisors.map(a => '<option value="'+a.id+'">'+a.name+'</option>').join('');
+      state.advisors.map(a => '<option value="'+escapeHTML(String(a.id))+'">'+escapeHTML(a.name||'بدون نام')+'</option>').join('');
   }
 
   const filter = document.getElementById('acc-filter-type')?.value || '';
@@ -4464,11 +4501,11 @@ function renderAccounting(){
   el.innerHTML = '<table><thead><tr><th>نوع</th><th>عنوان</th><th>مبلغ</th><th>مشاور</th><th>تاریخ</th><th>توضیحات</th></tr></thead><tbody>' +
     list.map(t => '<tr>' +
       '<td><span style="color:'+(typeColor[t.type]||'var(--text)')+';">'+(typeLabel[t.type]||t.type)+'</span></td>' +
-      '<td><b>'+t.title+'</b></td>' +
+      '<td><b>'+escapeHTML(t.title||'بدون عنوان')+'</b></td>' +
       '<td style="color:'+(typeColor[t.type]||'var(--text)')+';">'+fmt(t.amount)+' ت</td>' +
-      '<td>'+(state.advisors.find(a=>a.id===t.advisor)||{}).name||'آژانس'+'</td>' +
-      '<td>'+t.date+'</td>' +
-      '<td style="color:var(--text2);font-size:11px;">'+( t.notes||'—')+'</td>' +
+      '<td>'+escapeHTML((state.advisors.find(a=>sameId(a.id,t.advisor))||{}).name||'آژانس')+'</td>' +
+      '<td>'+escapeHTML(t.date||'—')+'</td>' +
+      '<td style="color:var(--text2);font-size:11px;">'+escapeHTML(t.notes||'—')+'</td>' +
     '</tr>').join('') +
   '</tbody></table>';
 }
@@ -4480,7 +4517,7 @@ function exportExcel(){
   const rows = [['عنوان','نوع','وضعیت','قیمت','متراژ','نام مالک','تلفن','تاریخ','تایید']];
   state.properties.forEach(p => {
     const price = p.price || p.mortgage || p.rent || '';
-    const area = (p.extra&&(p.extra.area||p.extra.land)) || '';
+    const area = getPropArea(p) || '';
     rows.push([p.title, p.type, p.status, price, area, p.ownerName||'', p.ownerPhone||'', p.date||'', p.approvalStatus||'approved']);
   });
 
@@ -4523,7 +4560,7 @@ function renderReports(){
       if(dealsEl._chart) dealsEl._chart.destroy();
       const months = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
       const dealsByMonth = Array(12).fill(0);
-      state.deals.forEach(d => { if(d.date) { const m=parseInt((d.date.split('/')[1]||'1'))-1; dealsByMonth[m]++; } });
+      state.deals.forEach(d => { if(d.date) { const m=Math.max(0, Math.min(11, Math.floor(toNumber(d.date.split('/')[1]||'1'))-1)); dealsByMonth[m]++; } });
       dealsEl._chart = new Chart(ctx2, {
         type: 'bar',
         data: {
@@ -4543,7 +4580,7 @@ function renderReports(){
       const myProps = state.properties.filter(p=>p.userId===a.id).length;
       const myDeals = state.deals.filter(d=>d.advisor===a.name).length;
       const myComm = state.accounting ? state.accounting.filter(t=>t.advisor===a.id&&t.type==='commission').reduce((s,t)=>s+t.amount,0) : 0;
-      return '<tr><td><b>'+a.name+'</b></td><td>'+myProps+'</td><td>'+myDeals+'</td><td style="color:var(--accent);">'+fmt(myComm)+' ت</td></tr>';
+      return '<tr><td><b>'+escapeHTML(a.name||'بدون نام')+'</b></td><td>'+myProps+'</td><td>'+myDeals+'</td><td style="color:var(--accent);">'+fmt(myComm)+' ت</td></tr>';
     }).join('');
     advEl.innerHTML = '<table><thead><tr><th>مشاور</th><th>فایل‌ها</th><th>معاملات</th><th>کمیسیون</th></tr></thead><tbody>'+rows+'</tbody></table>';
   }
@@ -4622,7 +4659,7 @@ function renderChatMessages(){
       '<div style="max-width:70%;background:'+(isMine?'rgba(232,168,56,.2)':'var(--surface2)')+';border-radius:'+(isMine?'12px 12px 0 12px':'12px 12px 12px 0')+';padding:10px 14px;">' +
       (!isMine?'<div style="font-size:10px;color:var(--accent);margin-bottom:4px;">'+escapeHTML(m.fromName)+'</div>':'')+
       '<div style="font-size:13px;">'+escapeHTML(m.text)+'</div>' +
-      '<div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:'+(isMine?'left':'right')+';">'+m.time+'</div>' +
+      '<div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:'+(isMine?'left':'right')+';">'+escapeHTML(m.time||'')+'</div>' +
       '</div></div>';
   }).join('');
   el.scrollTop = el.scrollHeight;
@@ -4771,14 +4808,12 @@ function printContract(){
 //  نقشه ملک‌ها (OpenStreetMap - رایگان)
 // ════════════════════════════════════════════════
 function openPropMap(){
-  const props = state.properties.filter(p => p.lat && p.lng);
+  const props = state.properties.filter(p => Number.isFinite(toNumber(p.lat)) && Number.isFinite(toNumber(p.lng)));
   if(!props.length){
-    notify('ملکی با موقعیت جغرافیایی یافت نشد. در فرم ثبت ملک، آدرس رو تکمیل کنید.', 'var(--accent)');
+    notify('ملکی با مختصات جغرافیایی ثبت نشده است. در فرم ملک، عرض و طول جغرافیایی را وارد کنید.', 'var(--accent)');
     return;
   }
-  const markers = props.map(p =>
-    `[${p.lat},${p.lng},"${p.title} - ${p.type}"]`
-  ).join(',');
+  const markers = props.map(p => safeScriptJSON([toNumber(p.lat), toNumber(p.lng), `${p.title || 'ملک بدون عنوان'} - ${p.type || ''}`])).join(',');
   const mapHTML = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
