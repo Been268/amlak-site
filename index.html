@@ -526,18 +526,18 @@
   justify-content: space-around;
   gap: 2px;
 }
-.mob-nav-item {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  flex: 1; height: 100%; border: none; background: none;
+  .mob-nav-item {
+   position:relative; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; height: 100%; border: none; background: none;
   color: var(--text2); cursor: pointer; border-radius: 8px;
   transition: all .2s; gap: 2px; font-family: 'Vazirmatn', sans-serif;
   padding: 4px 2px;
 }
 .mob-nav-item .mob-icon { font-size: 20px; line-height: 1; }
 .mob-nav-item .mob-label { font-size: 9px; font-weight: 600; }
-.mob-nav-item.active { color: var(--accent); background: rgba(232,168,56,.1); }
+  .mob-nav-item.active { color: var(--accent); background: rgba(232,168,56,.1); }
+  .mob-reminder-badge { position:absolute; top:4px; right:calc(50% - 25px); min-width:16px; height:16px; padding:0 4px; display:inline-flex; align-items:center; justify-content:center; background:var(--red); color:#fff; border-radius:10px; font-size:9px; font-weight:800; line-height:1; }
 
-.sidebar-overlay {
+ .sidebar-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,.6); z-index: 999;
 }
@@ -753,6 +753,7 @@
   <button class="mob-nav-item" onclick="showPage('clients')" data-section="clients" aria-label="مشتریان">
     <span class="mob-icon">👥</span>
     <span class="mob-label">مشتریان</span>
+    <span class="mob-reminder-badge" id="client-reminder-count-mobile" style="display:none;"></span>
   </button>
   <button class="mob-nav-item" onclick="showPage('deals')" data-section="deals" aria-label="معاملات">
     <span class="mob-icon">🤝</span>
@@ -837,6 +838,7 @@
       <button class="nav-item" onclick="showPage('clients')">
         <span class="icon">👥</span> مشتریان
         <span class="nav-badge" id="client-count">0</span>
+        <span class="nav-badge badge-red" id="client-reminder-count" style="display:none;background:var(--red);color:#fff;"></span>
       </button>
       <button class="nav-item" data-admin-only="true" onclick="showPage('advisors')">
         <span class="icon">🤝</span> مشاوران
@@ -930,6 +932,16 @@
           <div class="stat-label">کمیسیون کل</div>
           <div class="stat-value" id="dash-commission">۰</div>
           <div class="stat-change">تومان</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin:16px 0;">
+        <div class="card-header">
+          <div class="card-title">🔔 مشتریان دارای یادآوری</div>
+          <button class="btn btn-ghost btn-sm" onclick="showPage('clients')">مشاهده فهرست</button>
+        </div>
+        <div class="card-body" style="padding:12px 16px;" id="dash-client-reminders">
+          <div class="empty-state" style="padding:22px 0;"><div class="icon">🔕</div><p>مشتری علامت‌گذاری‌شده‌ای ندارید</p></div>
         </div>
       </div>
 
@@ -1716,6 +1728,14 @@
       </div>
     </div>
 
+    <div class="form-group full" style="grid-column:1/-1;margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);">
+      <label style="display:flex;align-items:center;gap:9px;color:var(--text);cursor:pointer;">
+        <input type="checkbox" id="c-reminder-enabled" style="width:18px;height:18px;accent-color:var(--accent);">
+        <span>🔔 فعال‌سازی یادآوری روزانه این مشتری</span>
+      </label>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px;padding-right:27px;">تا وقتی آن را خاموش نکنید یا نتیجه نهایی ثبت شود، در داشبورد نمایش داده می‌شود.</div>
+    </div>
+
     <!-- فیلدهای داینامیک بر اساس نوع درخواست -->
     <div id="c-dynamic-fields" style="margin-top:4px;"></div>
 
@@ -1934,6 +1954,7 @@ async function showApp(){
   await loadUserState();
   renderProperties(); renderClients(); renderAdvisors(); renderDeals(); renderTgPosts(); updateCounts(); renderDashboard();
   updateFollowupBadge();
+  updateClientReminderBadge();
 }
 
 async function doLogin(){
@@ -2107,8 +2128,8 @@ async function loadUserState(){
       state.accounting=[...state.accounting,...ac];
     }
     state.properties = props;
-    state.clients    = clients;
-    state.advisors   = advisors;
+      state.clients = clients;
+  state.advisors   = advisors;
     state.deals      = deals;
     state.tgPosts    = tgPosts;
     state.reminders  = reminders;
@@ -3414,17 +3435,19 @@ async function saveClient(){
   document.querySelectorAll('#c-dynamic-fields input, #c-dynamic-fields select, #c-dynamic-fields textarea').forEach(el => {
     if(el.id) dynFields[el.id.replace(/^c-/, '')] = el.value;
   });
-  const c = {
-    id: String(Date.now()), name,
-    phone:    gVal('c-phone'),
+    const c = {
+      id: String(Date.now()), name,
+      phone:    gVal('c-phone'),
     request:  gVal('c-request'),
     budget:   gVal('c-budget'),
     area:     gVal('c-area'),
     source:   gVal('c-source'),
     priority: gVal('c-priority'),
-    notes:    gVal('c-notes'),
-    dynFields,
-    date: new Date().toLocaleDateString('fa-IR'),
+      notes:    gVal('c-notes'),
+      dynFields,
+      reminderEnabled: !!document.getElementById('c-reminder-enabled')?.checked,
+      reminderStatus: 'active',
+      date: new Date().toLocaleDateString('fa-IR'),
     createdAt: fb().serverTimestamp(),
     userId: currentUser.id
   };
@@ -3432,8 +3455,10 @@ async function saveClient(){
     await fb().setDoc(fb().doc(fb().db, `users/${currentUser.id}/clients/${c.id}`), _cleanObj(c));
     state.clients.unshift(c);
     clearForm(['c-name','c-phone','c-budget','c-area','c-notes']);
+    const reminderInput = document.getElementById('c-reminder-enabled');
+    if(reminderInput) reminderInput.checked = false;
     closeModal('client-modal');
-    renderClients(); updateCounts();
+    renderClients(); updateCounts(); renderDashboard(); updateClientReminderBadge();
     notify('مشتری ثبت شد ✅');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
@@ -3483,6 +3508,9 @@ function openClientDetails(id){
   ].join('');
   const extra = dynEntries.map(([key,value]) => propertyDetailCard(clientDetailFallbackLabel(key), clientDetailValue(value, key))).join('');
   const notes = c.notes ? `<div class="property-detail-section"><div class="property-detail-section-title">📝 یادداشت و نکات مهم</div><div class="property-detail-notes">${propertyDetailValue(c.notes)}</div></div>` : '';
+  const reminderAction = c.reminderEnabled
+    ? `<button class="btn btn-ghost btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="toggleClientReminder(this.dataset.clientId, false); closeModal('client-details-modal')">🔕 خاموش کردن یادآوری</button>`
+    : `<button class="btn btn-primary btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="toggleClientReminder(this.dataset.clientId, true); closeModal('client-details-modal')">🔔 فعال کردن یادآوری</button>`;
 
   document.getElementById('client-details-title').textContent = `🔎 جزئیات مشتری — ${c.name || 'بدون نام'}`;
   document.getElementById('client-details-content').innerHTML = `
@@ -3490,6 +3518,7 @@ function openClientDetails(id){
     <div class="property-detail-section"><div class="property-detail-section-title">📋 اطلاعات اصلی</div><div class="property-detail-grid">${core || '<div class="property-detail-empty">اطلاعات اصلی ثبت نشده است</div>'}</div></div>
     ${extra ? `<div class="property-detail-section"><div class="property-detail-section-title">🎯 نیازمندی‌های مشتری</div><div class="property-detail-grid">${extra}</div></div>` : ''}
     ${notes}
+    <div style="display:flex;justify-content:flex-start;margin-top:14px;">${reminderAction}</div>
   `;
   openModal('client-details-modal');
 }
@@ -3538,7 +3567,7 @@ function renderClients(){
 
   el.innerHTML = `<table><thead><tr>
     <th>نام</th><th>موبایل</th><th>درخواست</th><th>بودجه / مبلغ</th>
-    <th>جزئیات</th><th>منطقه</th><th>اولویت</th><th>یادداشت</th><th>عملیات</th>
+    <th>جزئیات</th><th>منطقه</th><th>اولویت</th><th>یادداشت</th><th>یادآوری</th><th>عملیات</th>
   </tr></thead><tbody>
   ${list.map(c=>`<tr data-client-id="${escapeHTML(String(c.id))}" style="cursor:pointer;" title="برای مشاهده جزئیات مشتری کلیک کنید">
     <td><b>${escapeHTML(c.name)}</b>${c.source?`<br><span style="font-size:10px;color:var(--text3)">${escapeHTML(c.source)}</span>`:''}</td>
@@ -3549,8 +3578,10 @@ function renderClients(){
     <td>${escapeHTML(c.area||'—')}</td>
     <td>${prMap[c.priority]||''}</td>
     <td style="font-size:12px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(c.notes||'—')}</td>
+    <td>${c.reminderEnabled ? '<span class="badge badge-red">🔔 فعال</span>' : '<span class="badge badge-gray">خاموش</span>'}</td>
     <td style="display:flex;gap:6px;align-items:center">
       <button class="btn btn-primary btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="openClientDetails(this.dataset.clientId)" title="مشاهده اطلاعات کامل مشتری">🔎 جزئیات</button>
+      <button class="btn btn-sm" data-client-id="${escapeHTML(String(c.id))}" style="background:${c.reminderEnabled ? 'var(--surface3)' : 'var(--accent)'};color:${c.reminderEnabled ? 'var(--text)' : '#000'};font-size:12px;" onclick="toggleClientReminder(this.dataset.clientId)" title="${c.reminderEnabled ? 'خاموش کردن یادآوری' : 'فعال کردن یادآوری'}">${c.reminderEnabled ? '🔕 خاموش' : '🔔 یادآوری'}</button>
       <button class="btn btn-sm" style="background:var(--accent);color:#000;font-size:12px;" onclick="matchProperties(${c.id})" title="تطبیق با ملک‌ها">🔍 تطبیق</button>
       <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id})">🗑</button>
     </td>
@@ -3572,6 +3603,68 @@ function renderClients(){
     });
     row.tabIndex = 0;
   });
+}
+
+function getClientReminderList(){
+  return state.clients.filter(c => c.reminderEnabled && c.reminderStatus !== 'completed' && c.reminderStatus !== 'cancelled');
+}
+
+function updateClientReminderBadge(){
+  const count = getClientReminderList().length;
+  const desktop = document.getElementById('client-reminder-count');
+  const mobile = document.getElementById('client-reminder-count-mobile');
+  [desktop, mobile].forEach(el => {
+    if(!el) return;
+    el.textContent = count > 99 ? '۹۹+' : String(count);
+    el.style.display = count ? 'inline-flex' : 'none';
+  });
+}
+
+function renderClientReminders(){
+  const el = document.getElementById('dash-client-reminders');
+  if(!el) return;
+  const clients = getClientReminderList();
+  if(!clients.length){
+    el.innerHTML = '<div class="empty-state" style="padding:22px 0;"><div class="icon">🔕</div><p>مشتری علامت‌گذاری‌شده‌ای ندارید</p></div>';
+    updateClientReminderBadge();
+    return;
+  }
+  el.innerHTML = clients.map(c => `
+    <div class="reminder-item" style="align-items:flex-start;">
+      <div class="reminder-dot" style="background:var(--red);margin-top:5px;"></div>
+      <div class="reminder-info" style="min-width:0;">
+        <div class="reminder-title">🔔 ${escapeHTML(c.name || 'مشتری بدون نام')}</div>
+        <div class="reminder-time">${escapeHTML(c.request || 'درخواست نامشخص')}${c.area ? ' · ' + escapeHTML(c.area) : ''}${c.phone ? ' · ' + escapeHTML(c.phone) : ''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn btn-ghost btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="openClientDetails(this.dataset.clientId)">جزئیات</button>
+        <button class="btn btn-primary btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="toggleClientReminder(this.dataset.clientId, false)">انجام شد</button>
+      </div>
+    </div>
+  `).join('');
+  updateClientReminderBadge();
+}
+
+async function toggleClientReminder(id, enabled){
+  const client = state.clients.find(c => String(c.id) === String(id));
+  if(!client) return;
+  const next = enabled === undefined ? !client.reminderEnabled : !!enabled;
+  const ownerUid = client._uid || client.userId || currentUser.id;
+  try {
+    await fb().updateDoc(fb().doc(fb().db, `users/${ownerUid}/clients/${client.id}`), {
+      reminderEnabled: next,
+      reminderStatus: next ? 'active' : 'completed'
+    });
+    client.reminderEnabled = next;
+    client.reminderStatus = next ? 'active' : 'completed';
+    renderClients();
+    renderClientReminders();
+    renderDashboard();
+    updateClientReminderBadge();
+    notify(next ? 'یادآوری مشتری فعال شد 🔔' : 'یادآوری مشتری خاموش شد');
+  } catch(e){
+    notify('خطا در تغییر یادآوری: ' + e.message, 'var(--red)');
+  }
 }
 
 async function deleteClient(id){
@@ -3902,6 +3995,8 @@ function renderDashboard(){
     </tr>`).join('')}</tbody></table>`;
   }
 
+  renderClientReminders();
+
   // Today reminders
   const today = new Date().toISOString().split('T')[0];
   const todayRems = state.reminders.filter(r=>r.date===today);
@@ -4169,6 +4264,15 @@ async function saveFollowup(){
   };
   try {
     await _db.doc('users/' + currentUser.id + '/followups/' + fu.id).set(_cleanObj(fu));
+    const linkedClient = state.clients.find(c => String(c.id) === String(clientId));
+    if(linkedClient && ['deal','not_interested'].includes(fu.result) && linkedClient.reminderEnabled){
+      try {
+        const ownerUid = linkedClient._uid || linkedClient.userId || currentUser.id;
+        await fb().updateDoc(fb().doc(fb().db, `users/${ownerUid}/clients/${linkedClient.id}`), { reminderEnabled:false, reminderStatus:'completed', reminderCompletedAt:new Date().toISOString() });
+        linkedClient.reminderEnabled = false;
+        linkedClient.reminderStatus = 'completed';
+      } catch(error){ console.warn('Could not close client reminder automatically:', error); }
+    }
     state.followups.unshift(fu);
     closeModal('followup-modal');
     document.getElementById('fu-notes').value = '';
@@ -4176,6 +4280,8 @@ async function saveFollowup(){
     document.getElementById('fu-next-time').value = '';
     renderFollowups();
     updateFollowupBadge();
+    renderDashboard();
+    updateClientReminderBadge();
     notify('پیگیری ثبت شد ✅');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
