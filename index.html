@@ -2462,12 +2462,25 @@ function showPage(name) {
 
 // Modal
 function openModal(id){
-  document.getElementById(id).classList.add('open');
+  const modal = document.getElementById(id);
+  if(!modal) return;
+  // بعض مودال‌های قدیمی مستقیماً .modal هستند و inline display:none دارند؛
+  // فقط افزودن کلاس open برای آن‌ها کافی نیست.
+  modal.classList.add('open');
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
   if(id==='client-modal') updateClientFields();
+  if(id==='followup-modal') renderFollowups();
 }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+function closeModal(id){
+  const modal = document.getElementById(id);
+  if(!modal) return;
+  modal.classList.remove('open');
+  modal.style.display = 'none';
+  modal.setAttribute('aria-hidden', 'true');
+}
+document.querySelectorAll('.modal-overlay, .modal').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) closeModal(m.id); });
 });
 
 // Notification display intentionally disabled: no floating green bar on any page.
