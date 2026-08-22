@@ -1070,7 +1070,7 @@
         </div>
         <button class="btn btn-ghost" onclick="toggleFilterPanel()" id="filter-toggle-btn">⚙️ فیلتر پیشرفته</button>
         <button class="btn btn-ghost" onclick="openPropMap()">🗺️ نقشه</button>
-        <button class="btn btn-primary" onclick="openModal('prop-modal')">➕ ملک جدید</button>
+        <button class="btn btn-primary" onclick="openNewPropertyModal()">➕ ملک جدید</button>
       </div>
 
       <!-- پنل فیلتر پیشرفته -->
@@ -1156,7 +1156,7 @@
           <span>🔍</span>
           <input type="text" placeholder="جستجو مشتری..." id="client-search" oninput="renderClients()">
         </div>
-        <button class="btn btn-primary" onclick="openModal('client-modal')">➕ مشتری جدید</button>
+        <button class="btn btn-primary" onclick="openNewClientModal()">➕ مشتری جدید</button>
       </div>
       <div class="card">
         <div class="card-body" id="clients-table">
@@ -1168,7 +1168,7 @@
     <!-- Advisors -->
     <div class="page" id="page-advisors">
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
-        <button class="btn btn-primary" onclick="openModal('advisor-modal')">➕ مشاور جدید</button>
+        <button class="btn btn-primary" onclick="openNewAdvisorModal()">➕ مشاور جدید</button>
       </div>
       <div class="advisor-grid" id="advisor-grid">
         <div class="empty-state" style="grid-column:1/-1;"><div class="icon">🤝</div><p>هنوز مشاوری ثبت نشده</p></div>
@@ -1178,7 +1178,7 @@
     <!-- Deals -->
     <div class="page" id="page-deals">
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
-        <button class="btn btn-primary" onclick="openModal('deal-modal')">➕ معامله جدید</button>
+        <button class="btn btn-primary" onclick="openNewDealModal()">➕ معامله جدید</button>
       </div>
       <div class="card">
         <div class="card-body" id="deals-table">
@@ -1209,7 +1209,7 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title">📋 فایل‌های ذخیره شده از تلگرام</div>
-          <button class="btn btn-ghost btn-sm" onclick="openModal('tg-modal')">➕ افزودن دستی</button>
+          <button class="btn btn-ghost btn-sm" onclick="openNewTgPostModal()">➕ افزودن دستی</button>
         </div>
         <div class="card-body" id="tg-posts-list">
           <div class="empty-state"><div class="icon">📱</div><p>هنوز فایلی از تلگرام ذخیره نشده</p></div>
@@ -1294,7 +1294,7 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">📌 یادآوری‌ها</div>
-            <button class="btn btn-primary btn-sm" onclick="openModal('reminder-modal')">➕</button>
+            <button class="btn btn-primary btn-sm" onclick="openNewReminderModal()">➕</button>
           </div>
           <div style="padding:16px 20px;" id="reminders-list">
             <div class="empty-state" style="padding:30px 0;"><div class="icon">📅</div><p>یادآوری‌ای ندارید</p></div>
@@ -1307,7 +1307,7 @@
     <div class="page" id="page-followups">
       <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
         <div class="card-title" style="flex:1;">📞 پیگیری مشتریان</div>
-        <button class="btn btn-primary" onclick="openModal('followup-modal')">➕ پیگیری جدید</button>
+        <button class="btn btn-primary" onclick="openNewFollowupModal()">➕ پیگیری جدید</button>
       </div>
       <div id="followup-list">
         <div class="empty-state"><div class="icon">📞</div><p>پیگیری‌ای ثبت نشده</p></div>
@@ -1338,7 +1338,7 @@
     <div class="page" id="page-accounting">
       <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
         <div class="card-title" style="flex:1;">💳 حسابداری آژانس</div>
-        <button class="btn btn-primary" onclick="openModal('income-modal')">➕ ثبت درآمد/هزینه</button>
+        <button class="btn btn-primary" onclick="openNewIncomeModal()">➕ ثبت درآمد/هزینه</button>
       </div>
 
       <!-- آمار ماهانه -->
@@ -2309,6 +2309,15 @@ async function _saveDoc(col, data){
   return data;
 }
 
+// ذخیره یک سند در مسیر مالک واقعی؛ _uid فقط نشانه داخلی بارگذاری ادمین است و ذخیره نمی‌شود.
+async function saveRecordToOwner(col, data, ownerUid){
+  if(!currentUser) throw new Error('کاربر وارد نشده است');
+  const uid = String(ownerUid || currentUser.id);
+  if(!isAdmin() && uid !== String(currentUser.id)) throw new Error('دسترسی ویرایش این رکورد را ندارید');
+  const { _uid, ...persisted } = data || {};
+  await fb().setDoc(fb().doc(fb().db, `users/${uid}/${col}/${String(persisted.id)}`), _cleanObj(persisted));
+}
+
 // delete a single document
 async function _deleteDoc(col, id){
   if(!isAdmin() && !ADVISOR_ALLOWED_COLLECTIONS.has(col)) throw new Error('این عملیات فقط برای مدیر مجاز است');
@@ -2557,6 +2566,103 @@ function showPage(name) {
   document.getElementById('user-menu').style.display = 'none';
 }
 
+// حالت ویرایش فرم‌ها
+let editingPropertyId = null;
+let editingClientId = null;
+let editingAdvisorId = null;
+let editingDealId = null;
+let editingTgPostId = null;
+let editingReminderId = null;
+let editingFollowupId = null;
+let editingIncomeId = null;
+let editingImagesDirty = false;
+
+function setFieldValue(id, value){
+  const el = document.getElementById(id);
+  if(!el) return;
+  if(el.type === 'checkbox') el.checked = !!value;
+  else el.value = value === null || value === undefined ? '' : value;
+}
+function setModalMode(modalId, title, saveText){
+  const modal = document.getElementById(modalId);
+  if(!modal) return;
+  const heading = modal.querySelector('.modal-title, h3');
+  if(heading) heading.textContent = title;
+  const saveButton = modal.querySelector('.btn-primary:last-child, button[onclick^="save"]');
+  if(saveButton && saveText) saveButton.textContent = saveText;
+}
+
+function openNewPropertyModal(){
+  resetPropertyForm();
+  openModal('prop-modal');
+}
+function resetPropertyForm(){
+  editingPropertyId = null;
+  editingImagesDirty = false;
+  document.querySelectorAll('#prop-step2 input, #prop-step2 select, #prop-step2 textarea').forEach(el => {
+    if(el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+  currentImages = [];
+  currentVideos = [];
+  if(typeof renderImgPreview === 'function') renderImgPreview();
+  if(typeof renderVideoLinks === 'function') renderVideoLinks();
+  backToPropStep1();
+  const heading = document.querySelector('#prop-modal .modal-title');
+  if(heading) heading.textContent = '🏠 ثبت ملک جدید';
+  const saveButton = document.querySelector('#prop-modal .form-actions .btn-primary');
+  if(saveButton) saveButton.textContent = '💾 ذخیره';
+}
+function openNewAdvisorModal(){
+  editingAdvisorId = null;
+  setFieldValue('adv-name',''); setFieldValue('adv-phone',''); setFieldValue('adv-commission','50'); setFieldValue('adv-specialty','مسکونی');
+  setModalMode('advisor-modal', '🤝 ثبت مشاور جدید', '💾 ذخیره');
+  openModal('advisor-modal');
+}
+function openNewDealModal(){
+  editingDealId = null;
+  setFieldValue('d-title',''); setFieldValue('d-type','فروش'); setFieldValue('d-price',''); setFieldValue('d-commission',''); setFieldValue('d-advisor',''); setFieldValue('d-date','');
+  setModalMode('deal-modal', '📋 ثبت معامله جدید', '💾 ذخیره');
+  openModal('deal-modal');
+}
+function openNewTgPostModal(){
+  editingTgPostId = null;
+  setFieldValue('tg-title',''); setFieldValue('tg-url',''); setFieldValue('tg-info',''); setFieldValue('tg-follow','new');
+  setModalMode('tg-modal', '📱 افزودن فایل تلگرام', '💾 ذخیره');
+  openModal('tg-modal');
+}
+function openNewReminderModal(){
+  editingReminderId = null;
+  setFieldValue('rem-title',''); setFieldValue('rem-date',''); setFieldValue('rem-time',''); setFieldValue('rem-type','call');
+  setModalMode('reminder-modal', '📌 یادآوری جدید', '💾 ذخیره');
+  openModal('reminder-modal');
+}
+function openNewFollowupModal(){
+  editingFollowupId = null;
+  renderFollowups();
+  setFieldValue('fu-client',''); setFieldValue('fu-type','call'); setFieldValue('fu-result','interested'); setFieldValue('fu-notes',''); setFieldValue('fu-next-date',''); setFieldValue('fu-next-time','');
+  setModalMode('followup-modal', '📞 ثبت پیگیری', '💾 ذخیره پیگیری');
+  openModal('followup-modal');
+}
+function openNewIncomeModal(){
+  editingIncomeId = null;
+  setFieldValue('inc-type','income'); setFieldValue('inc-amount',''); setFieldValue('inc-title',''); setFieldValue('inc-date',''); setFieldValue('inc-advisor',''); setFieldValue('inc-notes','');
+  setModalMode('income-modal', '💳 ثبت تراکنش', '💾 ذخیره');
+  openModal('income-modal');
+}
+function openNewClientModal(){
+  editingClientId = null;
+  setFieldValue('c-name',''); setFieldValue('c-phone',''); setFieldValue('c-request','خرید');
+  setFieldValue('c-priority','mid'); setFieldValue('c-area',''); setFieldValue('c-source',''); setFieldValue('c-notes','');
+  setFieldValue('c-reminder-enabled', false);
+  updateClientFields();
+  const heading = document.querySelector('#client-modal .modal-title');
+  if(heading) heading.textContent = '👤 ثبت مشتری جدید';
+  const saveButton = document.querySelector('#client-modal .form-actions .btn-primary');
+  if(saveButton) saveButton.textContent = '💾 ذخیره';
+  openModal('client-modal');
+}
+
 // Modal
 function openModal(id){
   const modal = document.getElementById(id);
@@ -2566,8 +2672,6 @@ function openModal(id){
   modal.classList.add('open');
   modal.style.display = 'flex';
   modal.setAttribute('aria-hidden', 'false');
-  if(id==='client-modal') updateClientFields();
-  if(id==='followup-modal') renderFollowups();
 }
 function closeModal(id){
   const modal = document.getElementById(id);
@@ -2751,6 +2855,7 @@ function loadImageFiles(files){
   if(remaining <= 0){ notify('حداکثر ۱۰ تصویر مجاز است','var(--red)'); return; }
   const toLoad = files.slice(0, remaining);
   toLoad.forEach(file => {
+    editingImagesDirty = true;
     const reader = new FileReader();
     reader.onload = e => {
       currentImages.push({ data: e.target.result, name: file.name });
@@ -2765,7 +2870,7 @@ function renderImgPreview(){
   if(!currentImages.length){ grid.innerHTML=''; return; }
   grid.innerHTML = currentImages.map((img, i) => `
     <div class="gallery-thumb-wrap">
-      <img class="gallery-thumb" src="${img.data}" title="${img.name}" onclick="previewSingleImg(${i})">
+      <img class="gallery-thumb" src="${safeURL(img.data || img.url)}" alt="${escapeHTML(img.name || 'تصویر ملک')}" title="${escapeHTML(img.name || 'تصویر')}" onclick="previewSingleImg(${i})">
       <button class="gallery-thumb-del" onclick="removeCurrentImg(${i})">✕</button>
       ${i===0 ? '<div class="gallery-cover-badge">کاور</div>' : ''}
     </div>
@@ -2773,12 +2878,13 @@ function renderImgPreview(){
 }
 
 function removeCurrentImg(i){
+  editingImagesDirty = true;
   currentImages.splice(i, 1);
   renderImgPreview();
 }
 
 function previewSingleImg(i){
-  lightboxImages = currentImages.map(x => x.data);
+  lightboxImages = currentImages.map(x => x.data || x.url).filter(Boolean);
   lightboxIndex = i;
   openLightbox();
 }
@@ -2951,13 +3057,14 @@ function openPropertyDetails(id){
   const notes = p.notes ? `<div class="property-detail-section"><div class="property-detail-section-title">📝 توضیحات</div><div class="property-detail-notes">${propertyDetailValue(p.notes)}</div></div>` : '';
   const media = images.length ? `<div class="property-detail-section"><div class="property-detail-section-title">📸 تصاویر (${images.length})</div><div class="property-detail-media">${images.map((img,index) => `<img src="${safeURL(img.src)}" alt="${escapeHTML(img.name || title)}" title="برای بزرگ‌نمایی کلیک کنید" data-property-id="${escapeHTML(String(p.id))}" data-image-index="${index}" onclick="openPropertyLightbox(this.dataset.propertyId, this.dataset.imageIndex)">`).join('')}</div></div>` : '';
   const videos = (p.videos || []).filter(Boolean).length ? `<div class="property-detail-section"><div class="property-detail-section-title">🎬 ویدیوها</div>${p.videos.filter(Boolean).map(url => `<a href="${safeURL(url)}" target="_blank" rel="noopener noreferrer" class="property-detail-link">${escapeHTML(url)}</a>`).join('')}</div>` : '';
+  const editAction = `<div style="display:flex;justify-content:flex-start;margin-top:16px;"><button class="btn btn-primary" data-property-id="${escapeHTML(String(p.id))}" onclick="closeModal('property-details-modal'); openEditProperty(this.dataset.propertyId)">✏️ ویرایش ملک</button></div>`;
 
   document.getElementById('property-details-title').textContent = `🔎 جزئیات — ${title}`;
   document.getElementById('property-details-content').innerHTML = `
     <div class="property-detail-hero"><div><div class="property-detail-main-title">${escapeHTML(title)}</div><div class="property-detail-subtitle">${escapeHTML(status)}${p.type ? ` · ${escapeHTML(p.type)}` : ''}</div></div><span class="badge ${approval === 'تایید شده' ? 'badge-green' : approval === 'رد شده' ? 'badge-gray' : 'badge-gold'}">${escapeHTML(approval)}</span></div>
     <div class="property-detail-section"><div class="property-detail-section-title">📋 اطلاعات اصلی</div><div class="property-detail-grid">${core || '<div class="property-detail-empty">اطلاعات اصلی ثبت نشده است</div>'}</div></div>
     ${extra ? `<div class="property-detail-section"><div class="property-detail-section-title">⚙️ مشخصات تکمیلی</div><div class="property-detail-grid">${extra}</div></div>` : ''}
-    ${notes}${media}${videos}
+    ${notes}${media}${videos}${editAction}
   `;
   openModal('property-details-modal');
 }
@@ -3060,7 +3167,12 @@ async function prepareInlineImages(images){
   let totalBytes = 0;
   let skipped = 0;
   for(const image of images || []){
-    const prepared = await compressImageDataUrl(image.data || image.url, image.name);
+    // لینک‌های Storage قدیمی را بدون تبدیل مجدد حفظ کن.
+    if(image && image.url && !image.data){
+      savedImages.push({url:image.url, name:image.name || ''});
+      continue;
+    }
+    const prepared = await compressImageDataUrl(image && (image.data || image.url), image && image.name);
     if(!prepared || !prepared.data) { skipped++; continue; }
     const bytes = dataUrlByteSize(prepared.data);
     if(totalBytes + bytes > INLINE_IMAGE_TOTAL_LIMIT){ skipped++; continue; }
@@ -3110,6 +3222,39 @@ async function uploadPropertyImages(docId, images) {
   if(failedImages.length) console.warn('Some images were skipped while saving the property:', failedImages);
 }
 
+function openEditProperty(id){
+  const p = state.properties.find(item => sameId(item.id, id));
+  if(!p) return;
+  editingPropertyId = String(p.id);
+  editingImagesDirty = false;
+  selectPropType(p.type || 'سایر');
+  setFieldValue('p-title', p.title || '');
+  setFieldValue('p-status', p.status || 'sale');
+  setFieldValue('p-price', p.price || '');
+  setFieldValue('p-mortgage', p.mortgage || '');
+  setFieldValue('p-rent', p.rent || '');
+  setFieldValue('p-owner-name', p.ownerName || '');
+  setFieldValue('p-owner-phone', p.ownerPhone || '');
+  setFieldValue('p-address', p.address || '');
+  setFieldValue('p-lat', p.lat ?? '');
+  setFieldValue('p-lng', p.lng ?? '');
+  setFieldValue('p-notes', p.notes || '');
+  Object.entries(p.extra || {}).forEach(([key, value]) => setFieldValue(key, value));
+  updatePriceFields();
+  currentImages = (p.images || []).map(img => {
+    if(typeof img === 'string') return String(img).startsWith('data:image/') ? {data:img, name:''} : {url:img, name:''};
+    return {data:img.data || '', url:img.url || '', name:img.name || ''};
+  }).filter(img => img.data || img.url);
+  currentVideos = [...(p.videos || [])];
+  renderImgPreview();
+  renderVideoLinks();
+  const heading = document.querySelector('#prop-modal .modal-title');
+  if(heading) heading.textContent = '✏️ ویرایش ملک';
+  const saveButton = document.querySelector('#prop-modal .form-actions .btn-primary');
+  if(saveButton) saveButton.textContent = '💾 ذخیره تغییرات';
+  openModal('prop-modal');
+}
+
 async function saveProperty(){
   const title = document.getElementById('p-title').value.trim();
   if(!title){ notify('عنوان ملک را وارد کنید','var(--red)'); return; }
@@ -3139,34 +3284,46 @@ async function saveProperty(){
     const imagesToUpload = currentImages.slice();
     const inlineImageResult = await prepareInlineImages(imagesToUpload);
 
+    const existing = editingPropertyId ? state.properties.find(item => sameId(item.id, editingPropertyId)) : null;
+    const isEditing = !!existing;
+    const ownerUid = existing?._uid || existing?.userId || currentUser.id;
+    const docId = isEditing ? String(existing.id) : String(Date.now());
+    const keepExistingImages = isEditing && !editingImagesDirty;
     const propData = {
-      title, type: currentPropType, status, ...priceData,
+      ...(existing || {}),
+      title, type: currentPropType, status,
+      price: null, mortgage: null, rent: null, ...priceData,
       pricePerMeter: pricePerMeter || null,
       ownerPhone: gVal('p-owner-phone'), ownerName: gVal('p-owner-name'),
       notes: gVal('p-notes'), extra,
-      images: inlineImageResult.images,
+      images: keepExistingImages ? (existing.images || []) : inlineImageResult.images,
       videos: [...currentVideos],
-      date: new Date().toLocaleDateString('fa-IR'),
-      createdAt: fb().serverTimestamp(),
-      userId: currentUser.id,
-      userName: currentUser.fullname || '',
+      date: existing?.date || new Date().toLocaleDateString('fa-IR'),
+      createdAt: existing?.createdAt || fb().serverTimestamp(),
+      userId: existing?.userId || ownerUid,
+      userName: existing?.userName || currentUser.fullname || '',
       address: gVal('p-address'),
       lat: toNumber(document.getElementById('p-lat')?.value) || null,
       lng: toNumber(document.getElementById('p-lng')?.value) || null,
-      // وضعیت تایید: ادمین خودکار تایید می‌شود، مشاور نیاز به تایید دارد
-      approvalStatus: (currentUser.role === 'admin') ? 'approved' : 'pending'
+      id: docId,
+      // وضعیت تایید ملک موجود حفظ می‌شود؛ ملک جدید طبق نقش ثبت‌کننده تعیین می‌شود.
+      approvalStatus: existing?.approvalStatus || ((currentUser.role === 'admin') ? 'approved' : 'pending')
     };
-
-    const docId = String(Date.now());
-    propData.id = docId;
     await withTimeout(
-      fb().setDoc(fb().doc(fb().db, `users/${currentUser.id}/properties/${docId}`), _cleanObj(propData)),
+      saveRecordToOwner('properties', propData, ownerUid),
       12000,
       'ذخیره اطلاعات بیش از ۱۲ ثانیه طول کشید'
     );
-    state.properties.unshift(propData);
+    if(isEditing){
+      const index = state.properties.findIndex(item => sameId(item.id, docId));
+      if(index >= 0) state.properties[index] = propData;
+    } else {
+      state.properties.unshift(propData);
+    }
 
     currentImages = []; currentVideos = [];
+    editingPropertyId = null;
+    editingImagesDirty = false;
     resetMediaInputs();
     document.getElementById('p-title').value='';
     document.getElementById('p-notes').value='';
@@ -3179,11 +3336,13 @@ async function saveProperty(){
     closeModal('prop-modal');
     backToPropStep1();
     renderProperties(); updateCounts();
-    const imageNotice = inlineImageResult.skipped
-      ? `ملک ذخیره شد؛ ${inlineImageResult.images.length} تصویر ذخیره شد و ${inlineImageResult.skipped} تصویر به‌دلیل محدودیت حجم کنار گذاشته شد`
-      : inlineImageResult.images.length
-        ? 'ملک و تصاویر با موفقیت ذخیره شدند ✅'
-        : 'ملک با موفقیت ذخیره شد ✅';
+    const imageNotice = isEditing
+      ? 'اطلاعات ملک با موفقیت ویرایش شد ✅'
+      : inlineImageResult.skipped
+        ? `ملک ذخیره شد؛ ${inlineImageResult.images.length} تصویر ذخیره شد و ${inlineImageResult.skipped} تصویر به‌دلیل محدودیت حجم کنار گذاشته شد`
+        : inlineImageResult.images.length
+          ? 'ملک و تصاویر با موفقیت ذخیره شدند ✅'
+          : 'ملک با موفقیت ذخیره شد ✅';
     notify(imageNotice, inlineImageResult.skipped ? 'var(--accent)' : 'var(--green)');
   } catch(e){
     notify('خطا در ذخیره: ' + e.message, 'var(--red)');
@@ -3337,6 +3496,7 @@ function renderProperties(){
     <td><a href="tel:${safePhone(p.ownerPhone)}" style="color:var(--blue)">${escapeHTML(p.ownerPhone||'—')}</a></td>
     <td style="display:flex;gap:6px;align-items:center;">
       <button class="btn btn-primary btn-sm" data-property-id="${escapeHTML(String(p.id))}" onclick="openPropertyDetails(this.dataset.propertyId)" title="مشاهده اطلاعات کامل فایل">🔎 جزئیات</button>
+      <button class="btn btn-ghost btn-sm" data-property-id="${escapeHTML(String(p.id))}" onclick="openEditProperty(this.dataset.propertyId)" title="ویرایش ملک">✏️ ویرایش</button>
       ${(p.images&&p.images.length)||(p.videos&&p.videos.length)
         ? `<button class="btn btn-ghost btn-sm" data-property-id="${escapeHTML(String(p.id))}" onclick="openGallery(this.dataset.propertyId)" title="مشاهده گالری">📸</button>`
         : ''}
@@ -3635,6 +3795,27 @@ function updateClientFields() {
   container.innerHTML = html;
 }
 
+function openEditClient(id){
+  const c = state.clients.find(item => sameId(item.id, id));
+  if(!c) return;
+  editingClientId = String(c.id);
+  setFieldValue('c-name', c.name || '');
+  setFieldValue('c-phone', c.phone || '');
+  setFieldValue('c-request', c.request || 'خرید');
+  setFieldValue('c-priority', c.priority || 'mid');
+  setFieldValue('c-area', c.area || '');
+  setFieldValue('c-source', c.source || '');
+  setFieldValue('c-notes', c.notes || '');
+  setFieldValue('c-reminder-enabled', !!c.reminderEnabled && c.reminderStatus !== 'completed');
+  updateClientFields();
+  Object.entries(c.dynFields || {}).forEach(([key, value]) => setFieldValue(`c-${key}`, value));
+  const heading = document.querySelector('#client-modal .modal-title');
+  if(heading) heading.textContent = '✏️ ویرایش مشتری';
+  const saveButton = document.querySelector('#client-modal .form-actions .btn-primary');
+  if(saveButton) saveButton.textContent = '💾 ذخیره تغییرات';
+  openModal('client-modal');
+}
+
 async function saveClient(){
   const name = document.getElementById('c-name').value.trim();
   if(!name){ notify('نام مشتری را وارد کنید','var(--red)'); return; }
@@ -3642,31 +3823,35 @@ async function saveClient(){
   document.querySelectorAll('#c-dynamic-fields input, #c-dynamic-fields select, #c-dynamic-fields textarea').forEach(el => {
     if(el.id) dynFields[el.id.replace(/^c-/, '')] = el.value;
   });
-    const c = {
-      id: String(Date.now()), name,
-      phone:    gVal('c-phone'),
-    request:  gVal('c-request'),
-    budget:   gVal('c-budget'),
-    area:     gVal('c-area'),
-    source:   gVal('c-source'),
-    priority: gVal('c-priority'),
-      notes:    gVal('c-notes'),
-      dynFields,
-      reminderEnabled: !!document.getElementById('c-reminder-enabled')?.checked,
-      reminderStatus: 'active',
-      date: new Date().toLocaleDateString('fa-IR'),
-    createdAt: fb().serverTimestamp(),
-    userId: currentUser.id
+  const existing = editingClientId ? state.clients.find(item => sameId(item.id, editingClientId)) : null;
+  const isEditing = !!existing;
+  const ownerUid = existing?._uid || existing?.userId || currentUser.id;
+  const reminderActive = !!document.getElementById('c-reminder-enabled')?.checked;
+  const c = {
+    ...(existing || {}),
+    id: isEditing ? String(existing.id) : String(Date.now()), name,
+    phone: gVal('c-phone'), request: gVal('c-request'), budget: gVal('c-budget'),
+    area: gVal('c-area'), source: gVal('c-source'), priority: gVal('c-priority'),
+    notes: gVal('c-notes'), dynFields,
+    reminderEnabled: reminderActive,
+    reminderStatus: reminderActive ? 'active' : 'completed',
+    date: existing?.date || new Date().toLocaleDateString('fa-IR'),
+    createdAt: existing?.createdAt || fb().serverTimestamp(),
+    userId: existing?.userId || ownerUid
   };
   try {
-    await fb().setDoc(fb().doc(fb().db, `users/${currentUser.id}/clients/${c.id}`), _cleanObj(c));
-    state.clients.unshift(c);
+    await saveRecordToOwner('clients', c, ownerUid);
+    if(isEditing){
+      const index = state.clients.findIndex(item => sameId(item.id, c.id));
+      if(index >= 0) state.clients[index] = c;
+    } else state.clients.unshift(c);
+    editingClientId = null;
     clearForm(['c-name','c-phone','c-budget','c-area','c-notes']);
     const reminderInput = document.getElementById('c-reminder-enabled');
     if(reminderInput) reminderInput.checked = false;
     closeModal('client-modal');
-    renderClients(); updateCounts(); renderDashboard(); updateClientReminderBadge();
-    notify('مشتری ثبت شد ✅');
+    renderClients(); updateCounts(); renderDashboard(); renderClientReminders(); updateClientReminderBadge();
+    notify(isEditing ? 'اطلاعات مشتری ویرایش شد ✅' : 'مشتری ثبت شد ✅');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
 
@@ -3718,6 +3903,7 @@ function openClientDetails(id){
   const reminderAction = c.reminderEnabled
     ? `<button class="btn btn-ghost btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="toggleClientReminder(this.dataset.clientId, false); closeModal('client-details-modal')">🔕 خاموش کردن یادآوری</button>`
     : `<button class="btn btn-primary btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="toggleClientReminder(this.dataset.clientId, true); closeModal('client-details-modal')">🔔 فعال کردن یادآوری</button>`;
+  const editAction = `<button class="btn btn-primary btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="closeModal('client-details-modal'); openEditClient(this.dataset.clientId)">✏️ ویرایش مشتری</button>`;
 
   document.getElementById('client-details-title').textContent = `🔎 جزئیات مشتری — ${c.name || 'بدون نام'}`;
   document.getElementById('client-details-content').innerHTML = `
@@ -3725,7 +3911,7 @@ function openClientDetails(id){
     <div class="property-detail-section"><div class="property-detail-section-title">📋 اطلاعات اصلی</div><div class="property-detail-grid">${core || '<div class="property-detail-empty">اطلاعات اصلی ثبت نشده است</div>'}</div></div>
     ${extra ? `<div class="property-detail-section"><div class="property-detail-section-title">🎯 نیازمندی‌های مشتری</div><div class="property-detail-grid">${extra}</div></div>` : ''}
     ${notes}
-    <div style="display:flex;justify-content:flex-start;margin-top:14px;">${reminderAction}</div>
+    <div style="display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:14px;">${reminderAction}${editAction}</div>
   `;
   openModal('client-details-modal');
 }
@@ -3788,6 +3974,7 @@ function renderClients(){
     <td>${c.reminderEnabled ? '<span class="badge badge-red">🔔 فعال</span>' : '<span class="badge badge-gray">خاموش</span>'}</td>
     <td style="display:flex;gap:6px;align-items:center">
       <button class="btn btn-primary btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="openClientDetails(this.dataset.clientId)" title="مشاهده اطلاعات کامل مشتری">🔎 جزئیات</button>
+      <button class="btn btn-ghost btn-sm" data-client-id="${escapeHTML(String(c.id))}" onclick="openEditClient(this.dataset.clientId)" title="ویرایش مشتری">✏️ ویرایش</button>
       <button class="btn btn-sm" data-client-id="${escapeHTML(String(c.id))}" style="background:${c.reminderEnabled ? 'var(--surface3)' : 'var(--accent)'};color:${c.reminderEnabled ? 'var(--text)' : '#000'};font-size:12px;" onclick="toggleClientReminder(this.dataset.clientId)" title="${c.reminderEnabled ? 'خاموش کردن یادآوری' : 'فعال کردن یادآوری'}">${c.reminderEnabled ? '🔕 خاموش' : '🔔 یادآوری'}</button>
       <button class="btn btn-sm" style="background:var(--accent);color:#000;font-size:12px;" onclick="matchProperties(${c.id})" title="تطبیق با ملک‌ها">🔍 تطبیق</button>
       <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id})">🗑</button>
@@ -3885,23 +4072,45 @@ async function deleteClient(id){
 
 // --- ADVISORS ---
 const advColors = ['#e8a838','#3fb950','#58a6ff','#bc8cff','#f85149','#79c0ff'];
-function saveAdvisor(){
+function openEditAdvisor(id){
+  if(!isAdmin()) return;
+  const a = state.advisors.find(item => sameId(item.id, id));
+  if(!a) return;
+  editingAdvisorId = String(a.id);
+  setFieldValue('adv-name', a.name || a.fullname || ''); setFieldValue('adv-phone', a.phone || '');
+  setFieldValue('adv-commission', a.commission ?? 50); setFieldValue('adv-specialty', a.specialty || 'مسکونی');
+  setModalMode('advisor-modal', '✏️ ویرایش مشاور', '💾 ذخیره تغییرات');
+  openModal('advisor-modal');
+}
+async function saveAdvisor(){
   if(!isAdmin()) return;
   const name = document.getElementById('adv-name').value.trim();
   if(!name){ notify('نام مشاور را وارد کنید','var(--red)'); return; }
+  const existing = editingAdvisorId ? state.advisors.find(item => sameId(item.id, editingAdvisorId)) : null;
+  const isEditing = !!existing;
   const a = {
-    id: Date.now(), name,
+    ...(existing || {}),
+    id: isEditing ? existing.id : Date.now(), name,
     phone: document.getElementById('adv-phone').value,
     commission: document.getElementById('adv-commission').value,
     specialty: document.getElementById('adv-specialty').value,
-    deals: 0, color: advColors[state.advisors.length % advColors.length]
+    deals: existing?.deals ?? 0, color: existing?.color || advColors[state.advisors.length % advColors.length]
   };
-  state.advisors.push(a);
-  save('advisors', state.advisors);
-  closeModal('advisor-modal');
+  try {
+    if(isEditing){
+      await fb().updateDoc(fb().doc(fb().db, `users/${String(existing.id)}`), _cleanObj({ fullname:name, phone:a.phone, commission:a.commission, specialty:a.specialty }));
+      const index = state.advisors.findIndex(item => sameId(item.id, a.id));
+      if(index >= 0) state.advisors[index] = a;
+    } else {
+      state.advisors.push(a);
+      await save('advisors', [a]);
+    }
+    editingAdvisorId = null;
+    closeModal('advisor-modal');
   clearForm(['adv-name','adv-phone']);
-  renderAdvisors();
-  notify('مشاور با موفقیت ثبت شد ✅');
+    renderAdvisors();
+    notify(isEditing ? 'اطلاعات مشاور ویرایش شد ✅' : 'مشاور با موفقیت ثبت شد ✅');
+  } catch(e){ notify('خطا در ذخیره مشاور: '+e.message,'var(--red)'); }
 }
 
 function renderAdvisors(){
@@ -3910,13 +4119,14 @@ function renderAdvisors(){
   if(!state.advisors.length){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🤝</div><p>هنوز مشاوری ثبت نشده</p></div>'; return; }
   el.innerHTML = state.advisors.map(a=>`
     <div class="advisor-card">
-      <div class="advisor-avatar" style="background:${escapeHTML(a.color || 'var(--accent)')}">${escapeHTML((a.name||'؟')[0])}</div>
-      <div class="advisor-name">${escapeHTML(a.name||'بدون نام')}</div>
+      <div class="advisor-avatar" style="background:${escapeHTML(a.color || 'var(--accent)')}">${escapeHTML((a.name || a.fullname || '؟')[0])}</div>
+      <div class="advisor-name">${escapeHTML(a.name || a.fullname || 'بدون نام')}</div>
       <div style="font-size:12px;color:var(--text2)">${escapeHTML(a.specialty||'—')} | ${escapeHTML(a.phone||'—')}</div>
       <div class="advisor-deals">${escapeHTML(a.deals ?? 0)}</div>
       <div class="advisor-commission">معامله | پورسانت ${escapeHTML(a.commission||0)}%</div>
       <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
         <a href="tel:${safePhone(a.phone)}" class="btn btn-ghost btn-sm">📞 تماس</a>
+        <button class="btn btn-ghost btn-sm" data-advisor-id="${escapeHTML(String(a.id))}" onclick="openEditAdvisor(this.dataset.advisorId)" title="ویرایش مشاور">✏️</button>
         <button class="btn btn-danger btn-sm" data-advisor-id="${escapeHTML(String(a.id))}" onclick="deleteAdvisor(this.dataset.advisorId)">🗑</button>
       </div>
     </div>
@@ -3934,23 +4144,44 @@ async function deleteAdvisor(id){
 }
 
 // --- DEALS ---
-function saveDeal(){
+function openEditDeal(id){
+  const d = state.deals.find(item => sameId(item.id, id));
+  if(!d) return;
+  editingDealId = String(d.id);
+  setFieldValue('d-title', d.title || ''); setFieldValue('d-type', d.type || 'فروش');
+  setFieldValue('d-price', d.price || ''); setFieldValue('d-commission', d.commission || '');
+  setFieldValue('d-advisor', d.advisor || ''); setFieldValue('d-date', d.date || '');
+  setModalMode('deal-modal', '✏️ ویرایش معامله', '💾 ذخیره تغییرات');
+  openModal('deal-modal');
+}
+async function saveDeal(){
   const title = document.getElementById('d-title').value.trim();
   if(!title){ notify('عنوان معامله را وارد کنید','var(--red)'); return; }
+  const existing = editingDealId ? state.deals.find(item => sameId(item.id, editingDealId)) : null;
+  const isEditing = !!existing;
+  const ownerUid = existing?._uid || existing?.userId || currentUser.id;
   const d = {
-    id: Date.now(), title,
+    ...(existing || {}),
+    id: isEditing ? existing.id : Date.now(), title,
     type: document.getElementById('d-type').value,
     price: document.getElementById('d-price').value,
     commission: document.getElementById('d-commission').value,
     advisor: document.getElementById('d-advisor').value,
-    date: document.getElementById('d-date').value || new Date().toISOString().split('T')[0]
+    date: document.getElementById('d-date').value || existing?.date || new Date().toISOString().split('T')[0],
+    userId: existing?.userId || ownerUid
   };
-  state.deals.unshift(d);
-  save('deals', state.deals);
+  try {
+    await saveRecordToOwner('deals', d, ownerUid);
+    if(isEditing){
+      const index = state.deals.findIndex(item => sameId(item.id, d.id));
+      if(index >= 0) state.deals[index] = d;
+    } else state.deals.unshift(d);
+  } catch(e){ notify('خطا در ذخیره معامله: '+e.message,'var(--red)'); return; }
+  editingDealId = null;
   closeModal('deal-modal');
   clearForm(['d-title','d-price','d-commission','d-advisor','d-date']);
   renderDeals(); updateCounts();
-  notify('معامله با موفقیت ثبت شد ✅');
+  notify(isEditing ? 'اطلاعات معامله ویرایش شد ✅' : 'معامله با موفقیت ثبت شد ✅');
 }
 
 function renderDeals(){
@@ -3964,7 +4195,10 @@ function renderDeals(){
     <td style="color:var(--green)">${d.commission?fmt(d.commission)+' ت':'—'}</td>
     <td>${escapeHTML(d.advisor||'—')}</td>
     <td style="color:var(--text2)">${escapeHTML(d.date||'—')}</td>
-    <td><button class="btn btn-danger btn-sm" data-deal-id="${escapeHTML(String(d.id))}" onclick="deleteDeal(this.dataset.dealId)">🗑</button></td>
+    <td style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" data-deal-id="${escapeHTML(String(d.id))}" onclick="openEditDeal(this.dataset.dealId)" title="ویرایش معامله">✏️</button>
+      <button class="btn btn-danger btn-sm" data-deal-id="${escapeHTML(String(d.id))}" onclick="deleteDeal(this.dataset.dealId)">🗑</button>
+    </td>
   </tr>`).join('')}
   </tbody></table>`;
 }
@@ -3983,22 +4217,43 @@ function loadTelegramChannel(){
   notify('لینک کانال ذخیره شد. برای دیدن فایل‌ها، دسترسی مستقیم به API تلگرام لازم است.');
 }
 
-function saveTgPost(){
+function openEditTgPost(id){
+  if(!isAdmin()) return;
+  const p = state.tgPosts.find(item => sameId(item.id, id));
+  if(!p) return;
+  editingTgPostId = String(p.id);
+  setFieldValue('tg-title', p.title || ''); setFieldValue('tg-url', p.url || '');
+  setFieldValue('tg-info', p.info || ''); setFieldValue('tg-follow', p.follow || 'new');
+  setModalMode('tg-modal', '✏️ ویرایش فایل تلگرام', '💾 ذخیره تغییرات');
+  openModal('tg-modal');
+}
+async function saveTgPost(){
   const title = document.getElementById('tg-title').value.trim();
   if(!title){ notify('عنوان را وارد کنید','var(--red)'); return; }
+  const existing = editingTgPostId ? state.tgPosts.find(item => sameId(item.id, editingTgPostId)) : null;
+  const isEditing = !!existing;
+  const ownerUid = existing?._uid || existing?.userId || currentUser.id;
   const p = {
-    id: Date.now(), title,
+    ...(existing || {}),
+    id: isEditing ? existing.id : Date.now(), title,
     url: document.getElementById('tg-url').value,
     info: document.getElementById('tg-info').value,
     follow: document.getElementById('tg-follow').value,
-    date: new Date().toLocaleDateString('fa-IR')
+    date: existing?.date || new Date().toLocaleDateString('fa-IR'),
+    userId: existing?.userId || ownerUid
   };
-  state.tgPosts.unshift(p);
-  save('tgposts', state.tgPosts);
+  try {
+    await saveRecordToOwner('tgposts', p, ownerUid);
+    if(isEditing){
+      const index = state.tgPosts.findIndex(item => sameId(item.id, p.id));
+      if(index >= 0) state.tgPosts[index] = p;
+    } else state.tgPosts.unshift(p);
+  } catch(e){ notify('خطا در ذخیره فایل تلگرام: '+e.message,'var(--red)'); return; }
+  editingTgPostId = null;
   closeModal('tg-modal');
   clearForm(['tg-title','tg-url','tg-info']);
   renderTgPosts();
-  notify('فایل تلگرام ذخیره شد ✅');
+  notify(isEditing ? 'فایل تلگرام ویرایش شد ✅' : 'فایل تلگرام ذخیره شد ✅');
 }
 
 function renderTgPosts(){
@@ -4019,6 +4274,7 @@ function renderTgPosts(){
         <option value="called" ${p.follow==='called'?'selected':''}>زنگ زدم</option>
         <option value="done" ${p.follow==='done'?'selected':''}>انجام شد</option>
       </select>
+      <button class="btn btn-ghost btn-sm" data-post-id="${escapeHTML(String(p.id))}" onclick="openEditTgPost(this.dataset.postId)" title="ویرایش فایل تلگرام">✏️</button>
       <button class="btn btn-danger btn-sm" data-post-id="${escapeHTML(String(p.id))}" onclick="deleteTgPost(this.dataset.postId)">🗑</button>
     </td>
   </tr>`).join('')}
@@ -4092,26 +4348,46 @@ function changeMonth(dir){
 }
 
 function selectDate(date){
+  openNewReminderModal();
   document.getElementById('rem-date').value=date;
-  openModal('reminder-modal');
 }
 
-function saveReminder(){
+function openEditReminder(id){
+  const r = state.reminders.find(item => sameId(item.id, id));
+  if(!r) return;
+  editingReminderId = String(r.id);
+  setFieldValue('rem-title', r.title || ''); setFieldValue('rem-date', r.date || '');
+  setFieldValue('rem-time', r.time || ''); setFieldValue('rem-type', r.type || 'call');
+  setModalMode('reminder-modal', '✏️ ویرایش یادآوری', '💾 ذخیره تغییرات');
+  openModal('reminder-modal');
+}
+async function saveReminder(){
   const title = document.getElementById('rem-title').value.trim();
   if(!title){ notify('عنوان یادآوری را وارد کنید','var(--red)'); return; }
+  const existing = editingReminderId ? state.reminders.find(item => sameId(item.id, editingReminderId)) : null;
+  const isEditing = !!existing;
+  const ownerUid = existing?._uid || existing?.userId || currentUser.id;
   const r = {
-    id: Date.now(), title,
+    ...(existing || {}),
+    id: isEditing ? existing.id : Date.now(), title,
     date: document.getElementById('rem-date').value,
     time: document.getElementById('rem-time').value,
-    type: document.getElementById('rem-type').value
+    type: document.getElementById('rem-type').value,
+    userId: existing?.userId || ownerUid
   };
-  state.reminders.unshift(r);
-  save('reminders', state.reminders);
+  try {
+    await saveRecordToOwner('reminders', r, ownerUid);
+    if(isEditing){
+      const index = state.reminders.findIndex(item => sameId(item.id, r.id));
+      if(index >= 0) state.reminders[index] = r;
+    } else state.reminders.unshift(r);
+  } catch(e){ notify('خطا در ذخیره یادآوری: '+e.message,'var(--red)'); return; }
+  editingReminderId = null;
   closeModal('reminder-modal');
   clearForm(['rem-title','rem-date','rem-time']);
   renderCalendar();
   renderRemindersList();
-  notify('یادآوری ذخیره شد ✅');
+  notify(isEditing ? 'یادآوری ویرایش شد ✅' : 'یادآوری ذخیره شد ✅');
 }
 
 function renderRemindersList(){
@@ -4126,6 +4402,7 @@ function renderRemindersList(){
         <div class="reminder-title">${typeMap[r.type]||'📌'} ${escapeHTML(r.title||'بدون عنوان')}</div>
         <div class="reminder-time">${escapeHTML(r.date||'—')} ${escapeHTML(r.time||'')}</div>
       </div>
+      <button class="btn btn-ghost btn-sm" data-reminder-id="${escapeHTML(String(r.id))}" onclick="openEditReminder(this.dataset.reminderId)" title="ویرایش یادآوری">✏️</button>
       <button class="btn btn-danger btn-sm" data-reminder-id="${escapeHTML(String(r.id))}" onclick="deleteReminder(this.dataset.reminderId)">✕</button>
     </div>
   `).join('');
@@ -4407,7 +4684,7 @@ const MOBILE_TABLE_LABELS = {
   'deals-table': ['عنوان','نوع','قیمت نهایی','کمیسیون','مشاور','تاریخ','عملیات'],
   'tg-posts-list': ['ردیف','عنوان','اطلاعات','وضعیت','تاریخ','عملیات'],
   'price-history-list': ['ملک','قیمت قدیم','قیمت جدید','تغییر','تاریخ'],
-  'accounting-list': ['نوع','عنوان','مبلغ','مشاور','تاریخ','توضیحات'],
+  'accounting-list': ['نوع','عنوان','مبلغ','مشاور','تاریخ','توضیحات','عملیات'],
   'report-advisors-table': ['مشاور','فایل‌ها','معاملات','کمیسیون'],
   'admin-pending-list': ['نام','نام کاربری','موبایل','تاریخ عضویت','عملیات'],
   'admin-users-list': ['نام','نام کاربری','موبایل','تاریخ عضویت','ملک','مشتری','معامله','وضعیت','عملیات']
@@ -4486,56 +4763,75 @@ if(!state.priceHistory) state.priceHistory = [];
 if(!state.accounting) state.accounting = [];
 if(!state.chatMessages) state.chatMessages = {};
 
+function openEditFollowup(id){
+  const f = state.followups.find(item => sameId(item.id, id));
+  if(!f) return;
+  editingFollowupId = String(f.id);
+  renderFollowups();
+  setFieldValue('fu-client', f.clientId || ''); setFieldValue('fu-type', f.type || 'call');
+  setFieldValue('fu-result', f.result || 'interested'); setFieldValue('fu-notes', f.notes || '');
+  setFieldValue('fu-next-date', f.nextDate || ''); setFieldValue('fu-next-time', f.nextTime || '');
+  setModalMode('followup-modal', '✏️ ویرایش پیگیری', '💾 ذخیره تغییرات');
+  openModal('followup-modal');
+}
+
 async function saveFollowup(){
   const clientId = document.getElementById('fu-client').value;
   if(!clientId){ notify('مشتری را انتخاب کنید','var(--red)'); return; }
+  const existing = editingFollowupId ? state.followups.find(item => sameId(item.id, editingFollowupId)) : null;
+  const isEditing = !!existing;
+  const linkedClient = state.clients.find(c => sameId(c.id, clientId));
+  const ownerUid = existing?._uid || existing?.userId || currentUser.id;
   const fu = {
-    id: String(Date.now()),
+    ...(existing || {}),
+    id: isEditing ? String(existing.id) : String(Date.now()),
     clientId,
-    clientName: (state.clients.find(c=>String(c.id)===clientId)||{}).name || '',
+    clientName: linkedClient?.name || '',
     type: document.getElementById('fu-type').value,
     result: document.getElementById('fu-result').value,
     notes: document.getElementById('fu-notes').value,
     nextDate: document.getElementById('fu-next-date').value,
     nextTime: document.getElementById('fu-next-time').value,
-    date: new Date().toLocaleDateString('fa-IR'),
-    userId: currentUser.id,
-    createdAt: _db.app.firestore ? null : Date.now()
+    date: existing?.date || new Date().toLocaleDateString('fa-IR'),
+    userId: existing?.userId || ownerUid,
+    createdAt: existing?.createdAt || Date.now()
   };
   try {
-    await _db.doc('users/' + currentUser.id + '/followups/' + fu.id).set(_cleanObj(fu));
-    const linkedClient = state.clients.find(c => String(c.id) === String(clientId));
-    if(linkedClient && ['deal','not_interested'].includes(fu.result) && linkedClient.reminderEnabled){
+    await saveRecordToOwner('followups', fu, ownerUid);
+    const wasFinal = ['deal','not_interested'].includes(existing?.result);
+    const becameFinal = ['deal','not_interested'].includes(fu.result) && !wasFinal;
+    if(linkedClient && becameFinal && linkedClient.reminderEnabled){
       try {
-        const ownerUid = linkedClient._uid || linkedClient.userId || currentUser.id;
-        await fb().updateDoc(fb().doc(fb().db, `users/${ownerUid}/clients/${linkedClient.id}`), { reminderEnabled:false, reminderStatus:'completed', reminderCompletedAt:new Date().toISOString() });
+        const clientOwnerUid = linkedClient._uid || linkedClient.userId || currentUser.id;
+        await fb().updateDoc(fb().doc(fb().db, `users/${clientOwnerUid}/clients/${linkedClient.id}`), { reminderEnabled:false, reminderStatus:'completed', reminderCompletedAt:new Date().toISOString() });
         linkedClient.reminderEnabled = false;
         linkedClient.reminderStatus = 'completed';
       } catch(error){ console.warn('Could not close client reminder automatically:', error); }
     }
-    state.followups.unshift(fu);
+    if(isEditing){
+      const index = state.followups.findIndex(item => sameId(item.id, fu.id));
+      if(index >= 0) state.followups[index] = fu;
+    } else state.followups.unshift(fu);
+    editingFollowupId = null;
     closeModal('followup-modal');
     document.getElementById('fu-notes').value = '';
     document.getElementById('fu-next-date').value = '';
     document.getElementById('fu-next-time').value = '';
-    renderFollowups();
-    updateFollowupBadge();
-    renderDashboard();
-    updateClientReminderBadge();
-    notify('پیگیری ثبت شد ✅');
+    renderFollowups(); updateFollowupBadge(); renderDashboard(); updateClientReminderBadge();
+    notify(isEditing ? 'اطلاعات پیگیری ویرایش شد ✅' : 'پیگیری ثبت شد ✅');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
 
 function renderFollowups(){
   const el = document.getElementById('followup-list');
-  if(!el) return;
 
-  // پر کردن select مشتری در مودال
+  // پر کردن select مشتری در مودال، حتی اگر صفحه پیگیری فعلاً نمایش داده نشده باشد.
   const sel = document.getElementById('fu-client');
   if(sel && state.clients.length){
     sel.innerHTML = '<option value="">انتخاب مشتری...</option>' +
       state.clients.map(c => '<option value="'+escapeHTML(String(c.id))+'">'+escapeHTML(c.name||'بدون نام')+'</option>').join('');
   }
+  if(!el) return;
 
   if(!state.followups.length){
     el.innerHTML = '<div class="empty-state"><div class="icon">📞</div><p>پیگیری‌ای ثبت نشده</p></div>';
@@ -4571,7 +4867,24 @@ function renderFollowupCard(f, typeLabel, resultLabel, resultColor){
     '</div>' +
     '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">'+escapeHTML((typeLabel[f.type]||f.type||'پیگیری'))+' &nbsp;|&nbsp; '+escapeHTML(f.notes||'—')+'</div>' +
     (f.nextDate ? '<div style="font-size:11px;color:var(--accent);margin-top:4px;">📅 پیگیری بعدی: '+escapeHTML(f.nextDate)+(f.nextTime?' ساعت '+escapeHTML(f.nextTime):'')+'</div>' : '') +
+    '<div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">' +
+    '<button class="btn btn-ghost btn-sm" data-followup-id="'+escapeHTML(String(f.id))+'" onclick="openEditFollowup(this.dataset.followupId)">✏️ ویرایش</button>' +
+    '<button class="btn btn-danger btn-sm" data-followup-id="'+escapeHTML(String(f.id))+'" onclick="deleteFollowup(this.dataset.followupId)">🗑</button>' +
+    '</div>' +
     '</div>';
+}
+
+async function deleteFollowup(id){
+  const f = state.followups.find(item => sameId(item.id, id));
+  if(!f) return;
+  if(!confirm('این پیگیری حذف شود؟')) return;
+  const ownerUid = f._uid || f.userId || currentUser.id;
+  try {
+    await _db.doc('users/' + ownerUid + '/followups/' + f.id).delete();
+    state.followups = state.followups.filter(item => !sameId(item.id, f.id));
+    renderFollowups(); updateFollowupBadge();
+    notify('پیگیری حذف شد','var(--red)');
+  } catch(e){ notify('خطا در حذف پیگیری: '+e.message,'var(--red)'); }
 }
 
 function updateFollowupBadge(){
@@ -4639,28 +4952,48 @@ function renderPriceHistory(){
 // ════════════════════════════════════════════════
 //  حسابداری آژانس
 // ════════════════════════════════════════════════
+function openEditIncome(id){
+  if(!isAdmin()) return;
+  const tx = (state.accounting || []).find(item => sameId(item.id, id));
+  if(!tx) return;
+  editingIncomeId = String(tx.id);
+  setFieldValue('inc-type', tx.type || 'income'); setFieldValue('inc-amount', tx.amount || '');
+  setFieldValue('inc-title', tx.title || ''); setFieldValue('inc-date', tx.date || '');
+  setFieldValue('inc-advisor', tx.advisor || ''); setFieldValue('inc-notes', tx.notes || '');
+  setModalMode('income-modal', '✏️ ویرایش تراکنش', '💾 ذخیره تغییرات');
+  openModal('income-modal');
+}
+
 async function saveIncome(){
   const amount = toNumber(document.getElementById('inc-amount').value);
   const title = document.getElementById('inc-title').value.trim();
   if(!amount || !title){ notify('مبلغ و عنوان الزامی است','var(--red)'); return; }
+  const existing = editingIncomeId ? (state.accounting || []).find(item => sameId(item.id, editingIncomeId)) : null;
+  const isEditing = !!existing;
+  const ownerUid = existing?._uid || existing?.userId || currentUser.id;
   const tx = {
-    id: String(Date.now()),
+    ...(existing || {}),
+    id: isEditing ? String(existing.id) : String(Date.now()),
     type: document.getElementById('inc-type').value,
     amount, title,
-    date: document.getElementById('inc-date').value || new Date().toLocaleDateString('fa-IR'),
+    date: document.getElementById('inc-date').value || existing?.date || new Date().toLocaleDateString('fa-IR'),
     advisor: document.getElementById('inc-advisor').value,
     notes: document.getElementById('inc-notes').value,
-    userId: currentUser.id,
-    createdAt: Date.now()
+    userId: existing?.userId || ownerUid,
+    createdAt: existing?.createdAt || Date.now()
   };
   try {
-    await _db.doc('users/' + currentUser.id + '/accounting/' + tx.id).set(_cleanObj(tx));
+    await saveRecordToOwner('accounting', tx, ownerUid);
     if(!state.accounting) state.accounting = [];
-    state.accounting.unshift(tx);
+    if(isEditing){
+      const index = state.accounting.findIndex(item => sameId(item.id, tx.id));
+      if(index >= 0) state.accounting[index] = tx;
+    } else state.accounting.unshift(tx);
+    editingIncomeId = null;
     closeModal('income-modal');
     ['inc-amount','inc-title','inc-notes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     renderAccounting();
-    notify('تراکنش ثبت شد ✅');
+    notify(isEditing ? 'تراکنش ویرایش شد ✅' : 'تراکنش ثبت شد ✅');
   } catch(e){ notify('خطا: '+e.message,'var(--red)'); }
 }
 
@@ -4701,7 +5034,7 @@ function renderAccounting(){
   const typeLabel = {income:'💚 درآمد', expense:'🔴 هزینه', commission:'⭐ کمیسیون'};
   const typeColor = {income:'#4ade80', expense:'var(--red)', commission:'var(--accent)'};
 
-  el.innerHTML = '<table><thead><tr><th>نوع</th><th>عنوان</th><th>مبلغ</th><th>مشاور</th><th>تاریخ</th><th>توضیحات</th></tr></thead><tbody>' +
+  el.innerHTML = '<table><thead><tr><th>نوع</th><th>عنوان</th><th>مبلغ</th><th>مشاور</th><th>تاریخ</th><th>توضیحات</th><th>عملیات</th></tr></thead><tbody>' +
     list.map(t => '<tr>' +
       '<td><span style="color:'+(typeColor[t.type]||'var(--text)')+';">'+(typeLabel[t.type]||t.type)+'</span></td>' +
       '<td><b>'+escapeHTML(t.title||'بدون عنوان')+'</b></td>' +
@@ -4709,6 +5042,7 @@ function renderAccounting(){
       '<td>'+escapeHTML((state.advisors.find(a=>sameId(a.id,t.advisor))||{}).name||'آژانس')+'</td>' +
       '<td>'+escapeHTML(t.date||'—')+'</td>' +
       '<td style="color:var(--text2);font-size:11px;">'+escapeHTML(t.notes||'—')+'</td>' +
+      '<td><button class="btn btn-ghost btn-sm" data-income-id="'+escapeHTML(String(t.id))+'" onclick="openEditIncome(this.dataset.incomeId)" title="ویرایش تراکنش">✏️</button></td>' +
     '</tr>').join('') +
   '</tbody></table>';
 }
@@ -5040,7 +5374,7 @@ data.forEach(function(d){L.marker([d[0],d[1]]).addTo(map).bindPopup(d[2]);});
 <div id="followup-modal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;padding:16px;">
   <div class="modal-box" style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:480px;border:1px solid var(--border);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <h3 style="margin:0;font-size:16px;">📞 ثبت پیگیری</h3>
+      <h3 id="followup-modal-title" style="margin:0;font-size:16px;">📞 ثبت پیگیری</h3>
       <button onclick="closeModal('followup-modal')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);">✕</button>
     </div>
     <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px;">
@@ -5085,7 +5419,7 @@ data.forEach(function(d){L.marker([d[0],d[1]]).addTo(map).bindPopup(d[2]);});
       </div>
     </div>
     <div style="margin-top:16px;text-align:left;">
-      <button class="btn btn-primary" onclick="saveFollowup()">💾 ذخیره پیگیری</button>
+      <button id="followup-save-btn" class="btn btn-primary" onclick="saveFollowup()">💾 ذخیره پیگیری</button>
     </div>
   </div>
 </div>
@@ -5094,7 +5428,7 @@ data.forEach(function(d){L.marker([d[0],d[1]]).addTo(map).bindPopup(d[2]);});
 <div id="income-modal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;padding:16px;">
   <div class="modal-box" style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:440px;border:1px solid var(--border);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <h3 style="margin:0;font-size:16px;">💳 ثبت تراکنش</h3>
+      <h3 id="income-modal-title" style="margin:0;font-size:16px;">💳 ثبت تراکنش</h3>
       <button onclick="closeModal('income-modal')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);">✕</button>
     </div>
     <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px;">
@@ -5130,7 +5464,7 @@ data.forEach(function(d){L.marker([d[0],d[1]]).addTo(map).bindPopup(d[2]);});
       </div>
     </div>
     <div style="margin-top:16px;text-align:left;">
-      <button class="btn btn-primary" onclick="saveIncome()">💾 ذخیره</button>
+      <button id="income-save-btn" class="btn btn-primary" onclick="saveIncome()">💾 ذخیره</button>
     </div>
   </div>
 </div>
