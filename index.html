@@ -3014,6 +3014,62 @@ const withTimeout = (promise, ms, message) => {
   ]).finally(() => clearTimeout(timer));
 };
 
+// ذخیره تصویر داخل سند برای زمانی که Firebase Storage فعال نیست.
+// سقف محافظه‌کارانه زیر محدودیت ۱ مگابایتی Firestore نگه داشته می‌شود.
+const INLINE_IMAGE_TOTAL_LIMIT = 700000;
+const INLINE_IMAGE_MAX_DIMENSION = 1280;
+
+function dataUrlByteSize(dataUrl){
+  const base64 = String(dataUrl || '').split(',')[1] || '';
+  return Math.max(0, Math.floor(base64.length * 3 / 4) - (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0));
+}
+
+function compressImageDataUrl(dataUrl, name){
+  return new Promise(resolve => {
+    if(!String(dataUrl || '').startsWith('data:image/')){ resolve(null); return; }
+    if(dataUrlByteSize(dataUrl) <= 120000){ resolve({data:dataUrl, name:name || 'تصویر'}); return; }
+    const image = new Image();
+    image.onload = () => {
+      try {
+        const scale = Math.min(1, INLINE_IMAGE_MAX_DIMENSION / Math.max(image.naturalWidth || 1, image.naturalHeight || 1));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round((image.naturalWidth || 1) * scale));
+        canvas.height = Math.max(1, Math.round((image.naturalHeight || 1) * scale));
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        let compressed = '';
+        for(const quality of [0.76, 0.66, 0.56, 0.46]){
+          compressed = canvas.toDataURL('image/jpeg', quality);
+          if(dataUrlByteSize(compressed) <= 180000) break;
+        }
+        resolve({data:compressed || dataUrl, name:name || 'تصویر'});
+      } catch(error) {
+        console.warn('Image compression skipped:', error);
+        resolve({data:dataUrl, name:name || 'تصویر'});
+      }
+    };
+    image.onerror = () => resolve({data:dataUrl, name:name || 'تصویر'});
+    image.src = dataUrl;
+  });
+}
+
+async function prepareInlineImages(images){
+  const savedImages = [];
+  let totalBytes = 0;
+  let skipped = 0;
+  for(const image of images || []){
+    const prepared = await compressImageDataUrl(image.data || image.url, image.name);
+    if(!prepared || !prepared.data) { skipped++; continue; }
+    const bytes = dataUrlByteSize(prepared.data);
+    if(totalBytes + bytes > INLINE_IMAGE_TOTAL_LIMIT){ skipped++; continue; }
+    savedImages.push({data:prepared.data, name:prepared.name});
+    totalBytes += bytes;
+  }
+  return {images:savedImages, skipped, totalBytes};
+}
+
 async function uploadPropertyImages(docId, images) {
   if(!images.length) return;
   const uploadedImages = [];
@@ -3078,15 +3134,17 @@ async function saveProperty(){
 
     const pricePerMeter = ['p-price-per-meter','p-price-per-m','v-price-per-m','l-price-per-m','cm-price-per-m','pt-price-per-m'].map(gVal).find(Boolean) || '';
 
-    // آپلود تصویر بعد از ذخیره رکورد و در پس‌زمینه انجام می‌شود.
+    // برای اینکه تصویر روی پلن Spark هم بعد از refresh باقی بماند،
+    // قبل از ذخیره به‌صورت فشرده داخل همان سند ملک نگهداری می‌شود.
     const imagesToUpload = currentImages.slice();
+    const inlineImageResult = await prepareInlineImages(imagesToUpload);
 
     const propData = {
       title, type: currentPropType, status, ...priceData,
       pricePerMeter: pricePerMeter || null,
       ownerPhone: gVal('p-owner-phone'), ownerName: gVal('p-owner-name'),
       notes: gVal('p-notes'), extra,
-      images: [],
+      images: inlineImageResult.images,
       videos: [...currentVideos],
       date: new Date().toLocaleDateString('fa-IR'),
       createdAt: fb().serverTimestamp(),
@@ -3121,8 +3179,12 @@ async function saveProperty(){
     closeModal('prop-modal');
     backToPropStep1();
     renderProperties(); updateCounts();
-    notify(imagesToUpload.length ? 'ملک ذخیره شد؛ تصاویر در پس‌زمینه بارگذاری می‌شوند' : 'ملک با موفقیت ذخیره شد ✅');
-    if(imagesToUpload.length) void uploadPropertyImages(docId, imagesToUpload);
+    const imageNotice = inlineImageResult.skipped
+      ? `ملک ذخیره شد؛ ${inlineImageResult.images.length} تصویر ذخیره شد و ${inlineImageResult.skipped} تصویر به‌دلیل محدودیت حجم کنار گذاشته شد`
+      : inlineImageResult.images.length
+        ? 'ملک و تصاویر با موفقیت ذخیره شدند ✅'
+        : 'ملک با موفقیت ذخیره شد ✅';
+    notify(imageNotice, inlineImageResult.skipped ? 'var(--accent)' : 'var(--green)');
   } catch(e){
     notify('خطا در ذخیره: ' + e.message, 'var(--red)');
     console.error(e);
