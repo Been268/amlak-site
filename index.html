@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>املاک شاخص</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23161b22'/%3E%3Cpath d='M18 48 50 20l32 28v34H58V61H42v21H18z' fill='%23e8a838'/%3E%3C/svg%3E">
 <!-- Firebase SDKs (compat version - globally accessible) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -733,6 +734,100 @@
 #page-reports [style*="grid-template-columns:1fr 1fr"] { display: grid; }
 @media(max-width:768px){
   #page-reports [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   MOBILE UX REDESIGN v2 — اپلیکیشن‌محور، خوانا و لمسی
+   این لایه فقط در گوشی فعال است و منطق/ظاهر دسکتاپ را حفظ می‌کند.
+═════════════════════════════════════════════════════════════ */
+@media (max-width:768px){
+  :root{--mobile-gutter:14px;--mobile-radius:16px;--mobile-nav-height:74px}
+  html,body{overflow-x:hidden;min-width:0}
+  button,input,select,textarea{touch-action:manipulation}
+  button:not(:disabled),.btn:not(:disabled){transition:transform .16s cubic-bezier(.23,1,.32,1),background-color .16s ease,border-color .16s ease}
+  button:not(:disabled):active,.btn:not(:disabled):active{transform:scale(.97)}
+
+  .topbar{min-height:58px!important;padding:11px var(--mobile-gutter)!important;background:rgba(22,27,34,.97)!important;border-bottom:1px solid rgba(232,168,56,.2)!important;box-shadow:0 5px 18px rgba(0,0,0,.2);backdrop-filter:blur(14px)}
+  .topbar-title{font-size:16px!important;line-height:1.5}
+  .topbar-title:before{content:'●';color:var(--accent);font-size:9px;margin-left:8px;vertical-align:middle}
+  .content{padding:var(--mobile-gutter)!important;padding-bottom:calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 18px)!important}
+  .page.active{animation:mobilePageIn .18s ease-out both}
+  @keyframes mobilePageIn{from{opacity:.45;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  .mobile-bottom-nav{height:calc(var(--mobile-nav-height) + env(safe-area-inset-bottom))!important;min-height:var(--mobile-nav-height)!important;padding:6px 6px env(safe-area-inset-bottom)!important;gap:4px!important;background:rgba(22,27,34,.98)!important;border-top:1px solid rgba(232,168,56,.28)!important;box-shadow:0 -8px 26px rgba(0,0,0,.36);backdrop-filter:blur(18px)}
+  .mob-nav-item{min-width:0!important;min-height:54px!important;padding:6px 2px!important;border-radius:13px!important;gap:4px!important;color:#9aa4b2!important}
+  .mob-nav-item .mob-icon{font-size:21px!important;line-height:1.05}
+  .mob-nav-item .mob-label{font-size:10px!important;line-height:1.25;white-space:nowrap}
+  .mob-nav-item.active{color:var(--accent)!important;background:linear-gradient(180deg,rgba(232,168,56,.2),rgba(232,168,56,.07))!important;box-shadow:inset 0 0 0 1px rgba(232,168,56,.18),0 3px 12px rgba(232,168,56,.08)}
+  .mob-nav-item.active .mob-icon{transform:translateY(-1px)}
+  .mob-reminder-badge{top:3px!important;right:calc(50% - 24px)!important}
+
+  .sidebar{width:min(86vw,320px)!important;right:max(-330px,-90vw)!important;background:#121820!important;border-left:1px solid rgba(232,168,56,.2)!important;box-shadow:-12px 0 38px rgba(0,0,0,.55)!important}
+  .sidebar.mob-open{right:0!important}
+  .sidebar .logo{padding:17px 18px!important}
+  .sidebar nav{padding:12px 10px!important}
+  .nav-section{margin-bottom:14px!important}.nav-label{padding:6px 10px!important}
+  .nav-item{min-height:46px!important;padding:10px 12px!important;border-radius:11px!important;font-size:13px!important}
+  .nav-item.active{box-shadow:inset -3px 0 var(--accent)}
+  .sidebar-footer{padding:14px 16px calc(18px + env(safe-area-inset-bottom))!important}
+  .sidebar-overlay.mob-open{background:rgba(0,0,0,.68)!important;backdrop-filter:blur(2px)}
+
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin-bottom:16px!important}
+  .stat-card{min-height:106px;padding:14px 13px!important;border-radius:var(--mobile-radius)!important;box-shadow:0 5px 16px rgba(0,0,0,.16)}
+  .stat-label{font-size:11px!important;line-height:1.55}.stat-value{font-size:23px!important;line-height:1.2}.stat-change{font-size:10px!important}
+  .card{border-radius:var(--mobile-radius)!important;margin-bottom:14px!important;box-shadow:0 5px 18px rgba(0,0,0,.13)}
+  .card-header{min-height:52px;padding:12px 14px!important;gap:8px!important}.card-title{font-size:13px!important;line-height:1.6}
+  .empty-state{padding:42px 16px!important}.empty-state .icon{font-size:38px!important;margin-bottom:10px!important}.empty-state p{font-size:12px!important}
+
+  #page-properties>div:first-child,#page-clients>div:first-child,#page-followups>div:first-child,#page-deals>div:first-child,#page-advisors>div:first-child,#page-accounting>div:first-child,#page-reports>div:first-child{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-bottom:12px!important;align-items:stretch!important}
+  #page-properties>div:first-child .search-bar,#page-clients>div:first-child .search-bar{grid-column:1/-1;width:100%!important;min-width:0!important}
+  #page-followups>div:first-child .card-title,#page-deals>div:first-child .card-title,#page-advisors>div:first-child .card-title,#page-accounting>div:first-child .card-title,#page-reports>div:first-child .card-title{grid-column:1/-1}
+  #page-properties>div:first-child .btn,#page-clients>div:first-child .btn,#page-followups>div:first-child .btn,#page-deals>div:first-child .btn,#page-advisors>div:first-child .btn,#page-accounting>div:first-child .btn,#page-reports>div:first-child .btn{width:100%!important;min-width:0!important;justify-content:center}
+  #page-properties>div:first-child .btn-primary,#page-clients>div:first-child .btn-primary{grid-column:1/-1}
+  .search-bar{min-height:48px!important;padding:7px 12px!important;border-radius:13px!important;margin-bottom:0!important}.search-bar input{min-width:0!important;width:100%!important;font-size:15px!important}
+  .btn{min-height:44px!important;border-radius:12px!important;padding:9px 12px!important;font-size:13px!important}.btn-sm{min-height:38px!important;padding:7px 10px!important;font-size:11px!important;border-radius:10px!important}
+
+  /* فهرست‌ها به کارت‌های تک‌ستونه تبدیل می‌شوند و اسکرول افقی حذف می‌شود. */
+  #properties-table,#clients-table,#deals-table,#tg-posts-list,#price-history-list,#accounting-list,#report-advisors-table,#admin-pending-list,#admin-users-list{overflow:visible!important;padding:8px!important}
+  #properties-table table,#clients-table table,#deals-table table,#tg-posts-list table,#price-history-list table,#accounting-list table,#report-advisors-table table,#admin-pending-list table,#admin-users-list table{display:block!important;width:100%!important;min-width:0!important;border-collapse:separate!important;border-spacing:0 9px!important}
+  #properties-table thead,#clients-table thead,#deals-table thead,#tg-posts-list thead,#price-history-list thead,#accounting-list thead,#report-advisors-table thead,#admin-pending-list thead,#admin-users-list thead{display:none!important}
+  #properties-table tbody,#clients-table tbody,#deals-table tbody,#tg-posts-list tbody,#price-history-list tbody,#accounting-list tbody,#report-advisors-table tbody,#admin-pending-list tbody,#admin-users-list tbody{display:block!important;width:100%!important}
+  #properties-table tr,#clients-table tr,#deals-table tr,#tg-posts-list tr,#price-history-list tr,#accounting-list tr,#report-advisors-table tr,#admin-pending-list tr,#admin-users-list tr{display:block!important;width:100%!important;background:linear-gradient(145deg,var(--surface2),rgba(33,38,45,.72))!important;border:1px solid var(--border)!important;border-radius:14px!important;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+  #properties-table td,#clients-table td,#deals-table td,#tg-posts-list td,#price-history-list td,#accounting-list td,#report-advisors-table td,#admin-pending-list td,#admin-users-list td{display:flex!important;align-items:flex-start;justify-content:space-between;gap:10px;width:100%!important;min-width:0!important;padding:9px 11px!important;border:none!important;border-bottom:1px solid rgba(48,54,61,.6)!important;font-size:12px!important;line-height:1.65;overflow-wrap:anywhere}
+  #properties-table td:last-child,#clients-table td:last-child,#deals-table td:last-child,#tg-posts-list td:last-child,#price-history-list td:last-child,#accounting-list td:last-child,#report-advisors-table td:last-child,#admin-pending-list td:last-child,#admin-users-list td:last-child{border-bottom:none!important}
+  #properties-table td:before,#clients-table td:before,#deals-table td:before,#tg-posts-list td:before,#price-history-list td:before,#accounting-list td:before,#report-advisors-table td:before,#admin-pending-list td:before,#admin-users-list td:before{content:attr(data-label);flex:0 0 31%;color:var(--text3);font-size:10px;font-weight:600;line-height:1.7}
+  #properties-table td:has(button),#clients-table td:has(button),#deals-table td:has(button),#tg-posts-list td:has(button),#admin-pending-list td:has(button),#admin-users-list td:has(button){justify-content:flex-start!important;flex-wrap:wrap;gap:6px!important}
+  #properties-table td:has(button):before,#clients-table td:has(button):before,#deals-table td:has(button):before,#tg-posts-list td:has(button):before,#admin-pending-list td:has(button):before,#admin-users-list td:has(button):before{display:none}
+  #properties-table td:first-child{justify-content:flex-start;background:rgba(0,0,0,.08)}#properties-table td:first-child:before{display:none}
+  #properties-table td img{max-width:64px!important;border-radius:10px!important}
+  #properties-table .btn,#clients-table .btn,#deals-table .btn,#tg-posts-list .btn,#admin-pending-list .btn,#admin-users-list .btn{min-height:36px!important}
+
+  #filter-panel .card-body{padding:12px!important}#filter-panel .form-grid{grid-template-columns:1fr!important;gap:9px!important}#filter-panel input,#filter-panel select{width:100%!important}
+  .form-grid{grid-template-columns:1fr!important;gap:11px!important}.form-group.full{grid-column:1!important}input,select,textarea{width:100%;min-height:46px!important;border-radius:11px!important;font-size:16px!important}textarea{min-height:96px!important}label{font-size:12px!important;line-height:1.55}.form-actions{flex-direction:column-reverse!important;gap:8px!important}.form-actions .btn{width:100%!important;justify-content:center}.type-btn{min-height:68px;padding:11px 5px!important;border-radius:13px!important}
+
+  .modal-overlay{align-items:flex-end!important;padding:0!important}.modal-overlay>.modal{width:100%!important;max-width:100%!important;max-height:94dvh!important;border-radius:20px 20px 0 0!important;padding:18px 15px!important}
+  #followup-modal,#income-modal,#match-modal{align-items:flex-end!important;justify-content:center!important;padding:0!important;transform:none!important}
+  #followup-modal .modal-box,#income-modal .modal-box,#match-modal .modal-box{width:100%!important;max-width:100%!important;max-height:94dvh!important;overflow-y:auto!important;border-radius:20px 20px 0 0!important;padding:19px 15px calc(20px + env(safe-area-inset-bottom))!important;transform:none!important}
+  .modal-title{font-size:16px!important;margin-bottom:14px!important}.modal:before{margin-bottom:13px!important}
+
+  #page-dashboard>div[style*="grid-template-columns:1fr 1fr"],#page-calendar>div[style*="grid-template-columns:1fr 380px"],#page-reports>div[style*="grid-template-columns:1fr 1fr"]{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
+  #page-calendar .calendar-grid{gap:2px!important;padding:10px!important}#page-calendar .cal-day{min-height:42px;aspect-ratio:auto;border-radius:9px}#page-calendar .cal-day-header{padding:5px 1px;font-size:10px}
+  #page-commission .calc-section{max-width:none!important}#page-commission .calc-result{padding:16px!important}#page-commission .calc-result-value{font-size:27px!important}#page-commission .calc-breakdown{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  #page-chat{height:calc(100dvh - 150px)!important}#page-chat>div>div{gap:9px!important}#page-chat .card:first-child{max-height:116px!important;border-radius:14px!important}#page-chat #chat-input-area{padding:9px!important}#page-chat #chat-input-area .btn{min-width:76px}
+  .tg-card{padding:15px!important;border-radius:var(--mobile-radius)!important}.tg-header{align-items:flex-start!important}.tg-input-row{display:grid!important;grid-template-columns:1fr auto!important;gap:8px!important}.tg-input-row .btn{white-space:nowrap}
+  .admin-stats-grid{grid-template-columns:repeat(2,1fr)!important;gap:9px!important}.admin-stat{padding:12px 8px!important;border-radius:13px!important}.admin-stat-val{font-size:21px!important}.advisor-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}.advisor-card{min-width:0;padding:14px 9px!important;border-radius:14px!important}.advisor-name{overflow-wrap:anywhere}
+  #auth-screen{padding:12px!important;align-items:flex-end!important}.auth-box{width:100%!important;max-width:100%!important;padding:22px 17px calc(26px + env(safe-area-inset-bottom))!important;border-radius:22px 22px 0 0!important}.auth-logo{margin-bottom:20px!important}.auth-form{gap:11px!important}
+}
+@media(max-width:380px){.content{padding-left:10px!important;padding-right:10px!important}.mob-nav-item .mob-label{display:block!important;font-size:8.5px!important}.mob-nav-item .mob-icon{font-size:20px!important}.stat-card{padding-left:10px!important;padding-right:10px!important}.stat-value{font-size:21px!important}.tg-input-row{grid-template-columns:1fr!important}.tg-input-row .btn{width:100%!important;justify-content:center}}
+@media(max-width:768px){
+  #dash-prop-list{padding:8px!important}
+  #dash-prop-list table{display:block!important;width:100%!important;min-width:0!important;border-collapse:separate!important;border-spacing:0 8px!important}
+  #dash-prop-list thead{display:none!important}
+  #dash-prop-list tbody{display:block!important;width:100%!important}
+  #dash-prop-list tr{display:block!important;width:100%!important;background:linear-gradient(145deg,var(--surface2),rgba(33,38,45,.72))!important;border:1px solid var(--border)!important;border-radius:14px!important;overflow:hidden}
+  #dash-prop-list td{display:flex!important;justify-content:space-between;gap:10px;width:100%!important;padding:9px 11px!important;border:none!important;border-bottom:1px solid rgba(48,54,61,.6)!important;font-size:12px!important}
+  #dash-prop-list td:last-child{border-bottom:none!important}
+  #dash-prop-list td:before{content:attr(data-label);flex:0 0 31%;color:var(--text3);font-size:10px;font-weight:600}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -2446,6 +2541,8 @@ function showPage(name) {
   };
   document.getElementById('page-title').textContent = titles[name] || name;
   syncMobNav(name);
+  if(window.innerWidth <= 768) closeMobileMenu();
+  decorateMobileTables();
   const activeNav = document.querySelector(`.nav-item[onclick*="showPage('${name}')"]`);
   if (activeNav) activeNav.classList.add('active');
   if(name==='calendar') renderCalendar();
@@ -4240,6 +4337,33 @@ _auth.onAuthStateChanged(async function(fbUser) {
   }
 });
 
+// برچسب‌گذاری جدول‌ها برای حالت کارت‌محور موبایل
+const MOBILE_TABLE_LABELS = {
+  'dash-prop-list': ['عنوان','نوع','قیمت','وضعیت'],
+  'properties-table': ['تصویر','عنوان','نوع','متراژ','قیمت','وضعیت ملک','تایید','مالک','تماس','عملیات','آگهی'],
+  'clients-table': ['نام','موبایل','درخواست','بودجه / مبلغ','جزئیات','منطقه','اولویت','یادداشت','یادآوری','عملیات'],
+  'deals-table': ['عنوان','نوع','قیمت نهایی','کمیسیون','مشاور','تاریخ','عملیات'],
+  'tg-posts-list': ['ردیف','عنوان','اطلاعات','وضعیت','تاریخ','عملیات'],
+  'price-history-list': ['ملک','قیمت قدیم','قیمت جدید','تغییر','تاریخ'],
+  'accounting-list': ['نوع','عنوان','مبلغ','مشاور','تاریخ','توضیحات'],
+  'report-advisors-table': ['مشاور','فایل‌ها','معاملات','کمیسیون'],
+  'admin-pending-list': ['نام','نام کاربری','موبایل','تاریخ عضویت','عملیات'],
+  'admin-users-list': ['نام','نام کاربری','موبایل','تاریخ عضویت','ملک','مشتری','معامله','وضعیت','عملیات']
+};
+function decorateMobileTables(){
+  if(window.innerWidth > 768) return;
+  Object.entries(MOBILE_TABLE_LABELS).forEach(([id, labels]) => {
+    const root = document.getElementById(id);
+    const table = root?.querySelector('table');
+    if(!table) return;
+    table.querySelectorAll('tbody tr').forEach(row => {
+      Array.from(row.children).forEach((cell, index) => {
+        if(cell.tagName === 'TD' && !cell.dataset.label) cell.dataset.label = labels[index] || 'اطلاعات';
+      });
+    });
+  });
+}
+
 // ── Mobile Menu ──
 function toggleMobileMenu() {
   var sidebar = document.querySelector('.sidebar');
@@ -4286,6 +4410,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.innerWidth <= 768) closeMobileMenu();
     });
   });
+  decorateMobileTables();
+  if(document.body && window.MutationObserver){
+    new MutationObserver(function(){ decorateMobileTables(); }).observe(document.body, {subtree:true, childList:true});
+  }
 });
 
 // ════════════════════════════════════════════════
