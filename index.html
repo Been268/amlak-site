@@ -2646,7 +2646,7 @@ function openNewFollowupModal(){
 }
 function openNewIncomeModal(){
   editingIncomeId = null;
-  setFieldValue('inc-type','income'); setFieldValue('inc-amount',''); setFieldValue('inc-title',''); setFieldValue('inc-date',''); setFieldValue('inc-advisor',''); setFieldValue('inc-notes','');
+  setFieldValue('inc-type','income'); setFieldValue('inc-amount',''); setFieldValue('inc-title',''); setFieldValue('inc-date',toPersianDigits(todayShamsi())); setFieldValue('inc-advisor',''); setFieldValue('inc-notes','');
   setModalMode('income-modal', '💳 ثبت تراکنش', '💾 ذخیره');
   openModal('income-modal');
 }
@@ -2699,6 +2699,45 @@ function toNumber(value){
   const normalized = normalizeDigits(value).replace(/[٬,،\s]/g, '');
   const result = Number.parseFloat(normalized);
   return Number.isFinite(result) ? result : 0;
+}
+
+// تاریخ‌های حسابداری به‌صورت شمسی و با قالب ثابت YYYY/MM/DD نگهداری می‌شوند.
+function todayShamsi(){
+  try {
+    const raw = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date());
+    return normalizeDigits(raw).replace(/[-.]/g, '/').split('/').map((part, i) => i ? part.padStart(2, '0') : part).join('/');
+  } catch(e){
+    return new Date().toLocaleDateString('fa-IR');
+  }
+}
+function toPersianDigits(value){
+  return String(value ?? '').replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+}
+function normalizeAccountingDate(value, fallbackToday = false){
+  const raw = normalizeDigits(value).trim();
+  if(!raw) return fallbackToday ? todayShamsi() : '';
+  const match = raw.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if(!match) return '';
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if(month < 1 || month > 12 || day < 1 || day > 31) return '';
+  // داده‌های قدیمی که به‌شکل 2026-08-22 ذخیره شده‌اند به شمسی تبدیل می‌شوند.
+  if(year >= 1700){
+    const date = new Date(year, month - 1, day);
+    if(Number.isNaN(date.getTime())) return '';
+    return todayShamsiFromDate(date);
+  }
+  return `${String(year).padStart(4, '0')}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+}
+function todayShamsiFromDate(date){
+  try {
+    const raw = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric', month:'2-digit', day:'2-digit'}).format(date);
+    return normalizeDigits(raw).replace(/[-.]/g, '/').split('/').map((part, i) => i ? part.padStart(2, '0') : part).join('/');
+  } catch(e){ return date.toLocaleDateString('fa-IR'); }
+}
+function accountingDateForInput(value){
+  return toPersianDigits(normalizeAccountingDate(value) || todayShamsi());
 }
 
 // Format number
@@ -5018,7 +5057,7 @@ function openEditIncome(id){
   if(!tx) return;
   editingIncomeId = String(tx.id);
   setFieldValue('inc-type', tx.type || 'income'); setFieldValue('inc-amount', tx.amount || '');
-  setFieldValue('inc-title', tx.title || ''); setFieldValue('inc-date', tx.date || '');
+  setFieldValue('inc-title', tx.title || ''); setFieldValue('inc-date', accountingDateForInput(tx.date));
   setFieldValue('inc-advisor', tx.advisor || ''); setFieldValue('inc-notes', tx.notes || '');
   setModalMode('income-modal', '✏️ ویرایش تراکنش', '💾 ذخیره تغییرات');
   openModal('income-modal');
@@ -5027,7 +5066,10 @@ function openEditIncome(id){
 async function saveIncome(){
   const amount = toNumber(document.getElementById('inc-amount').value);
   const title = document.getElementById('inc-title').value.trim();
+  const dateInput = document.getElementById('inc-date').value.trim();
+  const date = normalizeAccountingDate(dateInput);
   if(!amount || !title){ notify('مبلغ و عنوان الزامی است','var(--red)'); return; }
+  if(!date){ notify('تاریخ را به شکل ۱۴۰۵/۰۱/۰۱ وارد کنید','var(--red)'); return; }
   const existing = editingIncomeId ? (state.accounting || []).find(item => sameId(item.id, editingIncomeId)) : null;
   const isEditing = !!existing;
   const ownerUid = existing?._uid || existing?.userId || currentUser.id;
@@ -5036,7 +5078,7 @@ async function saveIncome(){
     id: isEditing ? String(existing.id) : String(Date.now()),
     type: document.getElementById('inc-type').value,
     amount, title,
-    date: document.getElementById('inc-date').value || existing?.date || new Date().toLocaleDateString('fa-IR'),
+    date,
     advisor: document.getElementById('inc-advisor').value,
     notes: document.getElementById('inc-notes').value,
     userId: existing?.userId || ownerUid,
@@ -5073,8 +5115,8 @@ function renderAccounting(){
   const list = (state.accounting||[]).filter(t => !filter || t.type === filter);
 
   // محاسبه آمار ماه جاری
-  const thisMonth = new Date().toISOString().slice(0,7);
-  const monthTxs = (state.accounting||[]).filter(t => (t.date||'').includes(thisMonth) || t.createdAt > Date.now()-30*24*3600*1000);
+  const thisMonth = todayShamsi().slice(0,7);
+  const monthTxs = (state.accounting||[]).filter(t => normalizeAccountingDate(t.date).slice(0,7) === thisMonth || t.createdAt > Date.now()-30*24*3600*1000);
   const income = monthTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense = monthTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const commission = monthTxs.filter(t=>t.type==='commission').reduce((s,t)=>s+t.amount,0);
@@ -5100,7 +5142,7 @@ function renderAccounting(){
       '<td><b>'+escapeHTML(t.title||'بدون عنوان')+'</b></td>' +
       '<td style="color:'+(typeColor[t.type]||'var(--text)')+';">'+fmt(t.amount)+' ت</td>' +
       '<td>'+escapeHTML((state.advisors.find(a=>sameId(a.id,t.advisor))||{}).name||'آژانس')+'</td>' +
-      '<td>'+escapeHTML(t.date||'—')+'</td>' +
+      '<td data-label="تاریخ">'+escapeHTML(toPersianDigits(normalizeAccountingDate(t.date) || '—'))+'</td>' +
       '<td style="color:var(--text2);font-size:11px;">'+escapeHTML(t.notes||'—')+'</td>' +
       '<td><button class="btn btn-ghost btn-sm" data-income-id="'+escapeHTML(String(t.id))+'" onclick="openEditIncome(this.dataset.incomeId)" title="ویرایش تراکنش">✏️</button></td>' +
     '</tr>').join('') +
@@ -5510,7 +5552,8 @@ data.forEach(function(d){L.marker([d[0],d[1]]).addTo(map).bindPopup(d[2]);});
       </div>
       <div class="form-group">
         <label>تاریخ</label>
-        <input type="date" id="inc-date">
+        <input type="text" id="inc-date" inputmode="numeric" dir="ltr" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۱/۰۱" aria-describedby="inc-date-hint">
+        <small id="inc-date-hint" style="color:var(--text3);display:block;margin-top:4px;">تاریخ شمسی — قالب: ۱۴۰۵/۰۱/۰۱</small>
       </div>
       <div class="form-group">
         <label>مشاور مربوطه</label>
