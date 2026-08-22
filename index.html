@@ -1950,7 +1950,7 @@
       </div>
       <div class="form-group">
         <label>تاریخ معامله</label>
-        <input type="date" id="d-date">
+        <input type="text" id="d-date" inputmode="numeric" dir="ltr" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۱/۰۱">
       </div>
     </div>
     <div class="form-actions">
@@ -2004,7 +2004,7 @@
       </div>
       <div class="form-group">
         <label>تاریخ</label>
-        <input type="date" id="rem-date">
+        <input type="text" id="rem-date" inputmode="numeric" dir="ltr" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۱/۰۱">
       </div>
       <div class="form-group">
         <label>ساعت</label>
@@ -2516,8 +2516,8 @@ let state = {
   deals: [],
   tgPosts: [],
   reminders: [],
-  calMonth: new Date().getMonth(),
-  calYear: new Date().getFullYear()
+  calMonth: Number(siteToday().split('/')[1]) - 1,
+  calYear: Number(siteToday().split('/')[0])
 };
 
 // Navigation and role access
@@ -2621,7 +2621,7 @@ function openNewAdvisorModal(){
 }
 function openNewDealModal(){
   editingDealId = null;
-  setFieldValue('d-title',''); setFieldValue('d-type','فروش'); setFieldValue('d-price',''); setFieldValue('d-commission',''); setFieldValue('d-advisor',''); setFieldValue('d-date','');
+  setFieldValue('d-title',''); setFieldValue('d-type','فروش'); setFieldValue('d-price',''); setFieldValue('d-commission',''); setFieldValue('d-advisor',''); setFieldValue('d-date',toPersianDigits(siteToday()));
   setModalMode('deal-modal', '📋 ثبت معامله جدید', '💾 ذخیره');
   openModal('deal-modal');
 }
@@ -2633,7 +2633,7 @@ function openNewTgPostModal(){
 }
 function openNewReminderModal(){
   editingReminderId = null;
-  setFieldValue('rem-title',''); setFieldValue('rem-date',''); setFieldValue('rem-time',''); setFieldValue('rem-type','call');
+  setFieldValue('rem-title',''); setFieldValue('rem-date',toPersianDigits(siteToday())); setFieldValue('rem-time',''); setFieldValue('rem-type','call');
   setModalMode('reminder-modal', '📌 یادآوری جدید', '💾 ذخیره');
   openModal('reminder-modal');
 }
@@ -2738,6 +2738,52 @@ function todayShamsiFromDate(date){
 }
 function accountingDateForInput(value){
   return toPersianDigits(normalizeAccountingDate(value) || todayShamsi());
+}
+// همه فرم‌ها و نمایش‌های تاریخ سایت از این helperهای مشترک استفاده می‌کنند.
+function siteToday(){ return todayShamsi(); }
+function normalizeSiteDate(value){ return normalizeAccountingDate(value); }
+function siteDateForInput(value){ return accountingDateForInput(value); }
+function siteDateForInputOptional(value){
+  const normalized = normalizeSiteDate(value);
+  return normalized ? toPersianDigits(normalized) : '';
+}
+function siteDateDisplay(value){
+  const normalized = normalizeSiteDate(value);
+  return normalized ? toPersianDigits(normalized) : '';
+}
+function jalaliToGregorian(jy, jm, jd){
+  let gy = jy > 979 ? 1600 : 621;
+  let year = jy - (jy > 979 ? 979 : 0);
+  let days = 365 * year + Math.floor(year / 33) * 8 + Math.floor((year % 33 + 3) / 4) + 78 + jd + (jm < 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186);
+  gy += 400 * Math.floor(days / 146097);
+  days %= 146097;
+  if(days > 36524){
+    gy += 100 * Math.floor(--days / 36524);
+    days %= 36524;
+    if(days >= 365) days++;
+  }
+  gy += 4 * Math.floor(days / 1461);
+  days %= 1461;
+  if(days > 365){
+    gy += Math.floor((days - 1) / 365);
+    days = (days - 1) % 365;
+  }
+  let gd = days + 1;
+  const monthDays = [0,31,((gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0) ? 29 : 28,31,30,31,30,31,31,30,31,30,31];
+  let gm = 1;
+  while(gd > monthDays[gm]){ gd -= monthDays[gm]; gm++; }
+  return {year: gy, month: gm, day: gd};
+}
+function jalaliMonthDays(year, month){
+  if(month <= 6) return 31;
+  if(month <= 11) return 30;
+  const start = jalaliToGregorian(year, 12, 1);
+  const next = jalaliToGregorian(year + 1, 1, 1);
+  return Math.round((Date.UTC(next.year, next.month - 1, next.day) - Date.UTC(start.year, start.month - 1, start.day)) / 86400000);
+}
+function jalaliWeekday(year, month, day = 1){
+  const gregorian = jalaliToGregorian(year, month, day);
+  return new Date(gregorian.year, gregorian.month - 1, gregorian.day).getDay();
 }
 
 // Format number
@@ -3081,7 +3127,7 @@ function openPropertyDetails(id){
     propertyDetailCard('نوع ملک', propertyDetailValue(p.type)),
     propertyDetailCard('وضعیت', propertyDetailValue(status)),
     propertyDetailCard('تایید مدیر', propertyDetailValue(approval)),
-    propertyDetailCard('تاریخ ثبت', propertyDetailValue(p.date)),
+    propertyDetailCard('تاریخ ثبت', propertyDetailValue(siteDateDisplay(p.date))),
     propertyDetailCard('ثبت‌کننده', propertyDetailValue(p.userName)),
     propertyDetailCard('نام مالک', propertyDetailValue(p.ownerName)),
     p.ownerPhone ? propertyDetailCard('شماره تماس مالک', `<a href="tel:${safePhone(p.ownerPhone)}" style="color:var(--blue);text-decoration:none;direction:ltr;display:inline-block;">${escapeHTML(p.ownerPhone)}</a>`) : '',
@@ -3337,7 +3383,7 @@ async function saveProperty(){
       notes: gVal('p-notes'), extra,
       images: keepExistingImages ? (existing.images || []) : inlineImageResult.images,
       videos: [...currentVideos],
-      date: existing?.date || new Date().toLocaleDateString('fa-IR'),
+      date: normalizeSiteDate(existing?.date) || siteToday(),
       createdAt: existing?.createdAt || fb().serverTimestamp(),
       userId: existing?.userId || ownerUid,
       userName: existing?.userName || currentUser.fullname || '',
@@ -3878,7 +3924,7 @@ async function saveClient(){
     notes: gVal('c-notes'), dynFields,
     reminderEnabled: reminderActive,
     reminderStatus: reminderActive ? 'active' : 'completed',
-    date: existing?.date || new Date().toLocaleDateString('fa-IR'),
+    date: normalizeSiteDate(existing?.date) || siteToday(),
     createdAt: existing?.createdAt || fb().serverTimestamp(),
     userId: existing?.userId || ownerUid
   };
@@ -3938,7 +3984,7 @@ function openClientDetails(id){
     propertyDetailCard('اولویت', propertyDetailValue(priority)),
     propertyDetailCard('منطقه / محله', propertyDetailValue(c.area)),
     propertyDetailCard('معرف / منبع', propertyDetailValue(c.source)),
-    propertyDetailCard('تاریخ ثبت', propertyDetailValue(c.date)),
+    propertyDetailCard('تاریخ ثبت', propertyDetailValue(siteDateDisplay(c.date))),
     c.userName ? propertyDetailCard('ثبت‌کننده', propertyDetailValue(c.userName)) : ''
   ].join('');
   const extra = dynEntries.map(([key,value]) => propertyDetailCard(clientDetailFallbackLabel(key), clientDetailValue(value, key))).join('');
@@ -4193,13 +4239,16 @@ function openEditDeal(id){
   editingDealId = String(d.id);
   setFieldValue('d-title', d.title || ''); setFieldValue('d-type', d.type || 'فروش');
   setFieldValue('d-price', d.price || ''); setFieldValue('d-commission', d.commission || '');
-  setFieldValue('d-advisor', d.advisor || ''); setFieldValue('d-date', d.date || '');
+  setFieldValue('d-advisor', d.advisor || ''); setFieldValue('d-date', siteDateForInput(d.date));
   setModalMode('deal-modal', '✏️ ویرایش معامله', '💾 ذخیره تغییرات');
   openModal('deal-modal');
 }
 async function saveDeal(){
   const title = document.getElementById('d-title').value.trim();
+  const dateInput = document.getElementById('d-date').value.trim();
+  const date = normalizeSiteDate(dateInput);
   if(!title){ notify('عنوان معامله را وارد کنید','var(--red)'); return; }
+  if(!date){ notify('تاریخ معامله را به شکل ۱۴۰۵/۰۱/۰۱ وارد کنید','var(--red)'); return; }
   const existing = editingDealId ? state.deals.find(item => sameId(item.id, editingDealId)) : null;
   const isEditing = !!existing;
   const ownerUid = existing?._uid || existing?.userId || currentUser.id;
@@ -4210,7 +4259,7 @@ async function saveDeal(){
     price: document.getElementById('d-price').value,
     commission: document.getElementById('d-commission').value,
     advisor: document.getElementById('d-advisor').value,
-    date: document.getElementById('d-date').value || existing?.date || new Date().toISOString().split('T')[0],
+    date,
     userId: existing?.userId || ownerUid
   };
   try {
@@ -4237,7 +4286,7 @@ function renderDeals(){
     <td style="color:var(--accent)">${d.price?fmt(d.price)+' ت':'—'}</td>
     <td style="color:var(--green)">${d.commission?fmt(d.commission)+' ت':'—'}</td>
     <td>${escapeHTML(d.advisor||'—')}</td>
-    <td style="color:var(--text2)">${escapeHTML(d.date||'—')}</td>
+    <td data-label="تاریخ" style="color:var(--text2)">${escapeHTML(siteDateDisplay(d.date)||'—')}</td>
     <td style="display:flex;gap:6px;">
       <button class="btn btn-ghost btn-sm" data-deal-id="${escapeHTML(String(d.id))}" onclick="openEditDeal(this.dataset.dealId)" title="ویرایش معامله">✏️</button>
       <button class="btn btn-danger btn-sm" data-deal-id="${escapeHTML(String(d.id))}" onclick="deleteDeal(this.dataset.dealId)">🗑</button>
@@ -4282,7 +4331,7 @@ async function saveTgPost(){
     url: document.getElementById('tg-url').value,
     info: document.getElementById('tg-info').value,
     follow: document.getElementById('tg-follow').value,
-    date: existing?.date || new Date().toLocaleDateString('fa-IR'),
+    date: normalizeSiteDate(existing?.date) || siteToday(),
     userId: existing?.userId || ownerUid
   };
   try {
@@ -4310,7 +4359,7 @@ function renderTgPosts(){
     <td><b>${escapeHTML(p.title)}</b>${p.url?`<br><a href="${safeURL(p.url)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--blue)">🔗 لینک</a>`:''}</td>
     <td style="font-size:12px;color:var(--text2);max-width:150px">${escapeHTML(p.info||'—')}</td>
     <td><span class="badge ${fMap[p.follow]||'badge-gray'}">${escapeHTML(fLabel[p.follow]||p.follow)}</span></td>
-    <td style="color:var(--text2)">${escapeHTML(p.date)}</td>
+    <td data-label="تاریخ" style="color:var(--text2)">${escapeHTML(siteDateDisplay(p.date)||'—')}</td>
     <td style="display:flex;gap:6px;">
         <select data-post-id="${escapeHTML(String(p.id))}" onchange="updateTgFollow(this.dataset.postId, this.value)" style="font-size:11px;padding:4px 6px;">
         <option value="new" ${p.follow==='new'?'selected':''}>باید زنگ بزنم</option>
@@ -4362,21 +4411,20 @@ const monthNames = ['فروردین','اردیبهشت','خرداد','تیر','�
 
 function renderCalendar(){
   const y = state.calYear, m = state.calMonth;
-  document.getElementById('cal-month-title').textContent = `${monthNames[m]} ${y}`;
-  const firstDay = new Date(y, m, 1).getDay();
-  const daysInMonth = new Date(y, m+1, 0).getDate();
-  const today = new Date();
-  const reminderDates = state.reminders.map(r=>r.date);
+  document.getElementById('cal-month-title').textContent = `${monthNames[m]} ${toPersianDigits(y)}`;
+  const startDay = (jalaliWeekday(y, m + 1, 1) + 1) % 7;
+  const daysInMonth = jalaliMonthDays(y, m + 1);
+  const today = siteToday();
+  const reminderDates = state.reminders.map(r => normalizeSiteDate(r.date)).filter(Boolean);
   let html = '<div class="calendar-grid">';
   const dayNames = ['ش','ی','د','س','چ','پ','ج'];
   dayNames.forEach(d=>html+=`<div class="cal-day-header">${d}</div>`);
-  const startDay = (firstDay+1)%7;
   for(let i=0;i<startDay;i++) html+=`<div class="cal-day empty"></div>`;
   for(let d=1;d<=daysInMonth;d++){
-    const date = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isToday = d===today.getDate()&&m===today.getMonth()&&y===today.getFullYear();
+    const date = `${y}/${String(m+1).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+    const isToday = date === today;
     const hasEvent = reminderDates.includes(date);
-    html+=`<div class="cal-day ${isToday?'today':''} ${hasEvent?'has-event':''}" onclick="selectDate('${date}')">${d}</div>`;
+    html+=`<div class="cal-day ${isToday?'today':''} ${hasEvent?'has-event':''}" onclick="selectDate('${date}')">${toPersianDigits(d)}</div>`;
   }
   html+='</div>';
   document.getElementById('calendar-container').innerHTML=html;
@@ -4392,28 +4440,31 @@ function changeMonth(dir){
 
 function selectDate(date){
   openNewReminderModal();
-  document.getElementById('rem-date').value=date;
+  document.getElementById('rem-date').value = siteDateForInput(date);
 }
 
 function openEditReminder(id){
   const r = state.reminders.find(item => sameId(item.id, id));
   if(!r) return;
   editingReminderId = String(r.id);
-  setFieldValue('rem-title', r.title || ''); setFieldValue('rem-date', r.date || '');
+  setFieldValue('rem-title', r.title || ''); setFieldValue('rem-date', siteDateForInput(r.date));
   setFieldValue('rem-time', r.time || ''); setFieldValue('rem-type', r.type || 'call');
   setModalMode('reminder-modal', '✏️ ویرایش یادآوری', '💾 ذخیره تغییرات');
   openModal('reminder-modal');
 }
 async function saveReminder(){
   const title = document.getElementById('rem-title').value.trim();
+  const dateInput = document.getElementById('rem-date').value.trim();
+  const date = normalizeSiteDate(dateInput);
   if(!title){ notify('عنوان یادآوری را وارد کنید','var(--red)'); return; }
+  if(!date){ notify('تاریخ را به شکل ۱۴۰۵/۰۱/۰۱ وارد کنید','var(--red)'); return; }
   const existing = editingReminderId ? state.reminders.find(item => sameId(item.id, editingReminderId)) : null;
   const isEditing = !!existing;
   const ownerUid = existing?._uid || existing?.userId || currentUser.id;
   const r = {
     ...(existing || {}),
     id: isEditing ? existing.id : Date.now(), title,
-    date: document.getElementById('rem-date').value,
+    date,
     time: document.getElementById('rem-time').value,
     type: document.getElementById('rem-type').value,
     userId: existing?.userId || ownerUid
@@ -4443,7 +4494,7 @@ function renderRemindersList(){
       <div class="reminder-dot" style="background:${colors[r.type]||'var(--accent)'}"></div>
       <div class="reminder-info">
         <div class="reminder-title">${typeMap[r.type]||'📌'} ${escapeHTML(r.title||'بدون عنوان')}</div>
-        <div class="reminder-time">${escapeHTML(r.date||'—')} ${escapeHTML(r.time||'')}</div>
+        <div class="reminder-time">${escapeHTML(siteDateDisplay(r.date)||'—')} ${escapeHTML(r.time||'')}</div>
       </div>
       <button class="btn btn-ghost btn-sm" data-reminder-id="${escapeHTML(String(r.id))}" onclick="openEditReminder(this.dataset.reminderId)" title="ویرایش یادآوری">✏️</button>
       <button class="btn btn-danger btn-sm" data-reminder-id="${escapeHTML(String(r.id))}" onclick="deleteReminder(this.dataset.reminderId)">✕</button>
@@ -4464,8 +4515,8 @@ function renderAdvisorDashboard(){
   const myProps = state.properties.filter(p => p.userId === currentUser.id);
   const myClients = state.clients.filter(c => c.userId === currentUser.id);
   const myFollowups = (state.followups||[]).filter(f => f.userId === currentUser.id);
-  const today = new Date().toISOString().split('T')[0];
-  const todayFollowups = myFollowups.filter(f => f.nextDate === today);
+  const today = siteToday();
+  const todayFollowups = myFollowups.filter(f => normalizeSiteDate(f.nextDate) === today);
   const pendingProps = myProps.filter(p => (p.approvalStatus||'approved') === 'pending');
 
   const el = document.getElementById('advisor-dashboard');
@@ -4525,8 +4576,8 @@ function renderDashboard(){
   renderClientReminders();
 
   // Today reminders
-  const today = new Date().toISOString().split('T')[0];
-  const todayRems = state.reminders.filter(r=>r.date===today);
+  const today = siteToday();
+  const todayRems = state.reminders.filter(r=>normalizeSiteDate(r.date)===today);
   const remEl = document.getElementById('dash-reminders');
   if(!todayRems.length){ remEl.innerHTML='<div class="empty-state" style="padding:30px 0;"><div class="icon">📅</div><p>یادآوری امروز ندارید</p></div>'; }
   else {
@@ -4813,14 +4864,17 @@ function openEditFollowup(id){
   renderFollowups();
   setFieldValue('fu-client', f.clientId || ''); setFieldValue('fu-type', f.type || 'call');
   setFieldValue('fu-result', f.result || 'interested'); setFieldValue('fu-notes', f.notes || '');
-  setFieldValue('fu-next-date', f.nextDate || ''); setFieldValue('fu-next-time', f.nextTime || '');
+  setFieldValue('fu-next-date', siteDateForInputOptional(f.nextDate)); setFieldValue('fu-next-time', f.nextTime || '');
   setModalMode('followup-modal', '✏️ ویرایش پیگیری', '💾 ذخیره تغییرات');
   openModal('followup-modal');
 }
 
 async function saveFollowup(){
   const clientId = document.getElementById('fu-client').value;
+  const nextDateInput = document.getElementById('fu-next-date').value.trim();
+  const nextDate = normalizeSiteDate(nextDateInput);
   if(!clientId){ notify('مشتری را انتخاب کنید','var(--red)'); return; }
+  if(nextDateInput && !nextDate){ notify('تاریخ پیگیری بعدی را به شکل ۱۴۰۵/۰۱/۰۱ وارد کنید','var(--red)'); return; }
   const existing = editingFollowupId ? state.followups.find(item => sameId(item.id, editingFollowupId)) : null;
   const isEditing = !!existing;
   const linkedClient = state.clients.find(c => sameId(c.id, clientId));
@@ -4833,9 +4887,9 @@ async function saveFollowup(){
     type: document.getElementById('fu-type').value,
     result: document.getElementById('fu-result').value,
     notes: document.getElementById('fu-notes').value,
-    nextDate: document.getElementById('fu-next-date').value,
+    nextDate,
     nextTime: document.getElementById('fu-next-time').value,
-    date: existing?.date || new Date().toLocaleDateString('fa-IR'),
+    date: existing?.date || siteToday(),
     userId: existing?.userId || ownerUid,
     createdAt: existing?.createdAt || Date.now()
   };
@@ -4886,9 +4940,9 @@ function renderFollowups(){
   const resultColor = {interested:'#4ade80',not_interested:'var(--red)',thinking:'var(--accent)',visited:'#60a5fa',deal:'#4ade80',no_answer:'#888'};
 
   // گروه‌بندی بر اساس پیگیری‌های آینده
-  const today = new Date().toISOString().split('T')[0];
-  const upcoming = state.followups.filter(f => f.nextDate && f.nextDate >= today);
-  const past = state.followups.filter(f => !f.nextDate || f.nextDate < today);
+  const today = siteToday();
+  const upcoming = state.followups.filter(f => { const next = normalizeSiteDate(f.nextDate); return next && next >= today; });
+  const past = state.followups.filter(f => { const next = normalizeSiteDate(f.nextDate); return !next || next < today; });
 
   let html = '';
   if(upcoming.length){
@@ -4905,11 +4959,11 @@ function renderFollowups(){
 function renderFollowupCard(f, typeLabel, resultLabel, resultColor){
   return '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);">' +
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
-    '<div><b style="font-size:13px;">'+escapeHTML(f.clientName||'مشتری بدون نام')+'</b> &nbsp;<span style="font-size:11px;color:var(--text3);">'+escapeHTML(f.date||'—')+'</span></div>' +
+    '<div><b style="font-size:13px;">'+escapeHTML(f.clientName||'مشتری بدون نام')+'</b> &nbsp;<span style="font-size:11px;color:var(--text3);">'+escapeHTML(siteDateDisplay(f.date)||'—')+'</span></div>' +
     '<span style="font-size:11px;color:'+(resultColor[f.result]||'#888')+';">'+escapeHTML((resultLabel[f.result])||f.result||'نامشخص')+'</span>' +
     '</div>' +
     '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">'+escapeHTML((typeLabel[f.type]||f.type||'پیگیری'))+' &nbsp;|&nbsp; '+escapeHTML(f.notes||'—')+'</div>' +
-    (f.nextDate ? '<div style="font-size:11px;color:var(--accent);margin-top:4px;">📅 پیگیری بعدی: '+escapeHTML(f.nextDate)+(f.nextTime?' ساعت '+escapeHTML(f.nextTime):'')+'</div>' : '') +
+    (f.nextDate ? '<div style="font-size:11px;color:var(--accent);margin-top:4px;">📅 پیگیری بعدی: '+escapeHTML(siteDateDisplay(f.nextDate))+(f.nextTime?' ساعت '+escapeHTML(f.nextTime):'')+'</div>' : '') +
     '<div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">' +
     '<button class="btn btn-ghost btn-sm" data-followup-id="'+escapeHTML(String(f.id))+'" onclick="openEditFollowup(this.dataset.followupId)">✏️ ویرایش</button>' +
     '<button class="btn btn-danger btn-sm" data-followup-id="'+escapeHTML(String(f.id))+'" onclick="deleteFollowup(this.dataset.followupId)">🗑</button>' +
@@ -4931,8 +4985,8 @@ async function deleteFollowup(id){
 }
 
 function updateFollowupBadge(){
-  const today = new Date().toISOString().split('T')[0];
-  const count = state.followups.filter(f => f.nextDate === today).length;
+  const today = siteToday();
+  const count = state.followups.filter(f => normalizeSiteDate(f.nextDate) === today).length;
   const badge = document.getElementById('followup-count');
   if(badge){ badge.textContent = count; badge.style.display = count ? 'inline' : 'none'; }
 }
@@ -5042,7 +5096,7 @@ function renderPriceHistory(){
         '<td data-label="قیمت قدیم" style="color:var(--text2);">'+fmt(r.oldPrice)+' ت</td>' +
         '<td data-label="قیمت جدید" style="color:var(--accent);">'+fmt(r.newPrice)+' ت</td>' +
         '<td data-label="تغییر" style="color:'+(up?'#4ade80':'var(--red)')+';">'+(up?'▲ ':'▼ ')+fmt(Math.abs(toNumber(r.diff)))+' ت</td>' +
-        '<td data-label="تاریخ">'+escapeHTML(r.date||'—')+'</td>' +
+        '<td data-label="تاریخ">'+escapeHTML(siteDateDisplay(r.date)||'—')+'</td>' +
       '</tr>';
     }).join('') +
   '</tbody></table>';
@@ -5157,7 +5211,7 @@ function exportExcel(){
   state.properties.forEach(p => {
     const price = p.price || p.mortgage || p.rent || '';
     const area = getPropArea(p) || '';
-    rows.push([p.title, p.type, p.status, price, area, p.ownerName||'', p.ownerPhone||'', p.date||'', p.approvalStatus||'approved']);
+    rows.push([p.title, p.type, p.status, price, area, p.ownerName||'', p.ownerPhone||'', siteDateDisplay(p.date)||'', p.approvalStatus||'approved']);
   });
 
   let csv = '﻿'; // BOM for Excel UTF-8
@@ -5199,7 +5253,7 @@ function renderReports(){
       if(dealsEl._chart) dealsEl._chart.destroy();
       const months = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
       const dealsByMonth = Array(12).fill(0);
-      state.deals.forEach(d => { if(d.date) { const m=Math.max(0, Math.min(11, Math.floor(toNumber(d.date.split('/')[1]||'1'))-1)); dealsByMonth[m]++; } });
+      state.deals.forEach(d => { const date = normalizeSiteDate(d.date); if(date) { const m=Math.max(0, Math.min(11, Math.floor(toNumber(date.split('/')[1]||'1'))-1)); dealsByMonth[m]++; } });
       dealsEl._chart = new Chart(ctx2, {
         type: 'bar',
         data: {
@@ -5317,7 +5371,7 @@ function generateContract(propId){
   modal.style.display = 'flex';
 
   // پر کردن مقادیر پیشفرض
-  const today = new Date().toLocaleDateString('fa-IR');
+  const today = toPersianDigits(siteToday());
   document.getElementById('ct-date').value = today;
   document.getElementById('ct-final-price').value = _contractProp.price || _contractProp.mortgage || '';
 
@@ -5331,7 +5385,7 @@ function printContract(){
   if(!p) return;
 
   const ctType = document.getElementById('ct-type').value;
-  const ctDate = document.getElementById('ct-date').value;
+  const ctDate = siteDateForInput(document.getElementById('ct-date').value);
   const buyerName = document.getElementById('ct-buyer-name').value || '___________';
   const buyerPhone = document.getElementById('ct-buyer-phone').value || '___________';
   const buyerId = document.getElementById('ct-buyer-id').value || '___________';
@@ -5513,7 +5567,7 @@ data.forEach(function(d){L.marker([d[0],d[1]]).addTo(map).bindPopup(d[2]);});
       </div>
       <div class="form-group">
         <label>تاریخ پیگیری بعدی</label>
-        <input type="date" id="fu-next-date">
+        <input type="text" id="fu-next-date" inputmode="numeric" dir="ltr" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۱/۰۱">
       </div>
       <div class="form-group">
         <label>ساعت</label>
@@ -5592,7 +5646,7 @@ data.forEach(function(d){L.marker([d[0],d[1]]).addTo(map).bindPopup(d[2]);});
       </div>
       <div class="form-group">
         <label>تاریخ قرارداد</label>
-        <input type="text" id="ct-date" placeholder="1403/01/01">
+        <input type="text" id="ct-date" inputmode="numeric" dir="ltr" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۱/۰۱">
       </div>
       <div class="form-group">
         <label>نام خریدار/مستاجر</label>
