@@ -3314,6 +3314,9 @@ async function saveProperty(){
       12000,
       'ذخیره اطلاعات بیش از ۱۲ ثانیه طول کشید'
     );
+    const priceHistoryRecords = isEditing
+      ? await recordPropertyPriceChanges(existing, propData, ownerUid)
+      : [];
     if(isEditing){
       const index = state.properties.findIndex(item => sameId(item.id, docId));
       if(index >= 0) state.properties[index] = propData;
@@ -3336,8 +3339,9 @@ async function saveProperty(){
     closeModal('prop-modal');
     backToPropStep1();
     renderProperties(); updateCounts();
+    if(document.getElementById('page-price-history')?.classList.contains('active')) renderPriceHistory();
     const imageNotice = isEditing
-      ? 'اطلاعات ملک با موفقیت ویرایش شد ✅'
+      ? (priceHistoryRecords.length ? `ملک و ${priceHistoryRecords.length} سابقه تغییر قیمت ذخیره شد ✅` : 'اطلاعات ملک با موفقیت ویرایش شد ✅')
       : inlineImageResult.skipped
         ? `ملک ذخیره شد؛ ${inlineImageResult.images.length} تصویر ذخیره شد و ${inlineImageResult.skipped} تصویر به‌دلیل محدودیت حجم کنار گذاشته شد`
         : inlineImageResult.images.length
@@ -4897,23 +4901,78 @@ function updateFollowupBadge(){
 // ════════════════════════════════════════════════
 //  تاریخچه تغییر قیمت ملک‌ها
 // ════════════════════════════════════════════════
-async function recordPriceChange(prop, oldPrice, newPrice){
-  if(oldPrice === newPrice) return;
+const PRICE_HISTORY_FIELDS = [
+  { key: 'price', label: 'قیمت فروش' },
+  { key: 'mortgage', label: 'مبلغ رهن / ودیعه' },
+  { key: 'rent', label: 'اجاره ماهیانه' }
+];
+
+function isPriceHistoryFieldActive(status, key){
+  const rentMode = ['rent', 'rent_mortgage'].includes(status);
+  const mortgageMode = ['rent', 'mortgage', 'rent_mortgage'].includes(status);
+  if(key === 'price') return !mortgageMode;
+  if(key === 'mortgage') return mortgageMode;
+  if(key === 'rent') return rentMode;
+  return false;
+}
+
+function nextPriceHistoryId(){
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function recordPriceChange(prop, oldPrice, newPrice, ownerUid, priceLabel = 'قیمت فروش', meta = {}){
+  const oldValue = toNumber(oldPrice);
+  const newValue = toNumber(newPrice);
+  if(oldValue === newValue) return null;
+
+  const owner = String(ownerUid || prop?._uid || prop?.userId || currentUser.id);
   const record = {
-    id: String(Date.now()),
+    id: nextPriceHistoryId(),
     propId: String(prop.id),
-    propTitle: prop.title,
-    oldPrice: oldPrice,
-    newPrice: newPrice,
-    diff: newPrice - oldPrice,
+    propTitle: prop.title || 'بدون عنوان',
+    priceLabel,
+    oldPrice: oldValue,
+    newPrice: newValue,
+    diff: newValue - oldValue,
+    oldStatus: meta.oldStatus || '',
+    newStatus: meta.newStatus || '',
     date: new Date().toLocaleDateString('fa-IR'),
-    userId: currentUser.id
+    userId: owner,
+    _uid: owner
   };
   try {
-    await _db.doc('users/' + currentUser.id + '/priceHistory/' + record.id).set(_cleanObj(record));
+    await saveRecordToOwner('priceHistory', record, owner);
     if(!state.priceHistory) state.priceHistory = [];
     state.priceHistory.unshift(record);
-  } catch(e){ console.error('price history error:', e); }
+    return record;
+  } catch(e){
+    console.error('price history error:', e);
+    return null;
+  }
+}
+
+async function recordPropertyPriceChanges(previous, next, ownerUid){
+  if(!previous || !next) return [];
+  const oldStatus = previous.status || '';
+  const newStatus = next.status || '';
+  const changes = PRICE_HISTORY_FIELDS
+    .filter(field => isPriceHistoryFieldActive(oldStatus, field.key) || isPriceHistoryFieldActive(newStatus, field.key))
+    .map(field => ({
+      field,
+      oldValue: toNumber(previous[field.key]),
+      newValue: toNumber(next[field.key])
+    }))
+    .filter(item => item.oldValue !== item.newValue && (item.oldValue > 0 || item.newValue > 0));
+
+  const records = await Promise.all(changes.map(item => recordPriceChange(
+    next,
+    item.oldValue,
+    item.newValue,
+    ownerUid,
+    item.field.label,
+    {oldStatus, newStatus}
+  )));
+  return records.filter(Boolean);
 }
 
 function renderPriceHistory(){
@@ -4935,15 +4994,16 @@ function renderPriceHistory(){
     return;
   }
 
-  el.innerHTML = '<table><thead><tr><th>ملک</th><th>قیمت قدیم</th><th>قیمت جدید</th><th>تغییر</th><th>تاریخ</th></tr></thead><tbody>' +
+  el.innerHTML = '<table><thead><tr><th>ملک</th><th>نوع قیمت</th><th>قیمت قدیم</th><th>قیمت جدید</th><th>تغییر</th><th>تاریخ</th></tr></thead><tbody>' +
     list.map(r => {
-      const up = r.diff > 0;
+      const up = toNumber(r.diff) > 0;
       return '<tr>' +
-        '<td><b>'+escapeHTML(r.propTitle||'بدون عنوان')+'</b></td>' +
-        '<td style="color:var(--text2);">'+fmt(r.oldPrice)+' ت</td>' +
-        '<td style="color:var(--accent);">'+fmt(r.newPrice)+' ت</td>' +
-        '<td style="color:'+(up?'#4ade80':'var(--red)')+';">'+(up?'▲ ':'▼ ')+fmt(Math.abs(r.diff))+' ت</td>' +
-        '<td>'+escapeHTML(r.date||'—')+'</td>' +
+        '<td data-label="ملک"><b>'+escapeHTML(r.propTitle||'بدون عنوان')+'</b></td>' +
+        '<td data-label="نوع قیمت">'+escapeHTML(r.priceLabel || 'قیمت فروش')+'</td>' +
+        '<td data-label="قیمت قدیم" style="color:var(--text2);">'+fmt(r.oldPrice)+' ت</td>' +
+        '<td data-label="قیمت جدید" style="color:var(--accent);">'+fmt(r.newPrice)+' ت</td>' +
+        '<td data-label="تغییر" style="color:'+(up?'#4ade80':'var(--red)')+';">'+(up?'▲ ':'▼ ')+fmt(Math.abs(toNumber(r.diff)))+' ت</td>' +
+        '<td data-label="تاریخ">'+escapeHTML(r.date||'—')+'</td>' +
       '</tr>';
     }).join('') +
   '</tbody></table>';
